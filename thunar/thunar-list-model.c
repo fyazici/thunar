@@ -926,6 +926,69 @@ thunar_list_model_get_sort_column_id (GtkTreeSortable *sortable,
 }
 
 
+/* set sout column id to update current view but dont alter xfconf */
+void
+thunar_hack_list_model_set_sort_column_id_no_notify (GtkTreeSortable *sortable,
+                                      gint             sort_column_id,
+                                      GtkSortType      order)
+{
+    ThunarListModel *store = THUNAR_LIST_MODEL (sortable);
+    
+    _thunar_return_if_fail (THUNAR_IS_LIST_MODEL (store));
+    
+    switch (sort_column_id)
+    {
+        case THUNAR_COLUMN_DATE_ACCESSED:
+            store->sort_func = sort_by_date_accessed;
+            break;
+            
+        case THUNAR_COLUMN_DATE_MODIFIED:
+            store->sort_func = sort_by_date_modified;
+            break;
+            
+        case THUNAR_COLUMN_GROUP:
+            store->sort_func = sort_by_group;
+            break;
+            
+        case THUNAR_COLUMN_MIME_TYPE:
+            store->sort_func = sort_by_mime_type;
+            break;
+            
+        case THUNAR_COLUMN_FILE_NAME:
+        case THUNAR_COLUMN_NAME:
+            store->sort_func = thunar_file_compare_by_name;
+            break;
+            
+        case THUNAR_COLUMN_OWNER:
+            store->sort_func = sort_by_owner;
+            break;
+            
+        case THUNAR_COLUMN_PERMISSIONS:
+            store->sort_func = sort_by_permissions;
+            break;
+            
+        case THUNAR_COLUMN_SIZE:
+            store->sort_func = sort_by_size;
+            break;
+            
+        case THUNAR_COLUMN_TYPE:
+            store->sort_func = sort_by_type;
+            break;
+            
+        default:
+            _thunar_assert_not_reached ();
+    }
+    
+    /* new sort sign */
+    store->sort_sign = (order == GTK_SORT_ASCENDING) ? 1 : -1;
+    
+    /* re-sort the store */
+    thunar_list_model_sort (store);
+    
+    /* DO NOT notify listining parties */
+    /* gtk_tree_sortable_sort_column_changed (sortable); */
+}
+
 
 static void
 thunar_list_model_set_sort_column_id (GtkTreeSortable *sortable,
