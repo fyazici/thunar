@@ -35,16 +35,17 @@
 
 #include <thunar/thunar-application.h>
 #include <thunar/thunar-browser.h>
+#include <thunar/thunar-device-monitor.h>
 #include <thunar/thunar-dialogs.h>
 #include <thunar/thunar-dnd.h>
 #include <thunar/thunar-gio-extensions.h>
 #include <thunar/thunar-gtk-extensions.h>
+#include <thunar/thunar-menu-util.h>
 #include <thunar/thunar-preferences.h>
 #include <thunar/thunar-private.h>
 #include <thunar/thunar-shortcuts-icon-renderer.h>
 #include <thunar/thunar-shortcuts-model.h>
 #include <thunar/thunar-shortcuts-view.h>
-#include <thunar/thunar-device-monitor.h>
 #include <thunar/thunar-stock.h>
 
 
@@ -269,7 +270,7 @@ thunar_shortcuts_view_class_init (ThunarShortcutsViewClass *klass)
 static void
 thunar_shortcuts_view_init (ThunarShortcutsView *view)
 {
-  GtkTreeViewColumn *column;
+  GtkTreeViewColumn *column, *column_eject;
   GtkCellRenderer   *renderer;
   GtkTreeSelection  *selection;
 
@@ -291,10 +292,14 @@ thunar_shortcuts_view_init (ThunarShortcutsView *view)
   column = g_object_new (GTK_TYPE_TREE_VIEW_COLUMN,
                          "reorderable", FALSE,
                          "resizable", FALSE,
+                         "expand", TRUE,
                          "sizing", GTK_TREE_VIEW_COLUMN_AUTOSIZE,
                          "spacing", 2,
                          NULL);
   gtk_tree_view_append_column (GTK_TREE_VIEW (view), column);
+
+  column_eject = gtk_tree_view_column_new ();
+  gtk_tree_view_append_column (GTK_TREE_VIEW (view), column_eject);
 
   /* queue a resize on the column whenever the icon size is changed */
   view->queue_resize_signal_id = g_signal_connect_swapped (G_OBJECT (view->preferences), "notify::shortcuts-icon-size",
@@ -305,6 +310,7 @@ thunar_shortcuts_view_init (ThunarShortcutsView *view)
                            "weight", PANGO_WEIGHT_BOLD,
                            "xpad", 6,
                            "ypad", 6,
+                           "ellipsize", PANGO_ELLIPSIZE_END,
                            NULL);
   gtk_tree_view_column_pack_start (column, renderer, FALSE);
   gtk_tree_view_column_set_attributes (column, renderer,
@@ -349,8 +355,8 @@ thunar_shortcuts_view_init (ThunarShortcutsView *view)
 
   /* spinner to indicate (un)mount/eject delay */
   renderer = gtk_cell_renderer_spinner_new ();
-  gtk_tree_view_column_pack_start (column, renderer, FALSE);
-  gtk_tree_view_column_set_attributes (column, renderer,
+  gtk_tree_view_column_pack_start (column_eject, renderer, FALSE);
+  gtk_tree_view_column_set_attributes (column_eject, renderer,
                                        "visible", THUNAR_SHORTCUTS_MODEL_COLUMN_BUSY,
                                        "active", THUNAR_SHORTCUTS_MODEL_COLUMN_BUSY,
                                        "pulse", THUNAR_SHORTCUTS_MODEL_COLUMN_BUSY_PULSE,
@@ -359,8 +365,8 @@ thunar_shortcuts_view_init (ThunarShortcutsView *view)
   /* allocate icon renderer for the eject symbol */
   renderer = gtk_cell_renderer_pixbuf_new ();
   g_object_set (renderer, "mode", GTK_CELL_RENDERER_MODE_ACTIVATABLE, "icon-name", "media-eject", NULL);
-  gtk_tree_view_column_pack_start (column, renderer, FALSE);
-  gtk_tree_view_column_set_attributes (column, renderer,
+  gtk_tree_view_column_pack_start (column_eject, renderer, FALSE);
+  gtk_tree_view_column_set_attributes (column_eject, renderer,
                                        "visible", THUNAR_SHORTCUTS_MODEL_COLUMN_CAN_EJECT,
                                        NULL);
 
@@ -449,7 +455,7 @@ thunar_shortcuts_view_button_press_event (GtkWidget      *widget,
           /* check if we clicked the eject button area */
           column_width = gtk_tree_view_column_get_width (gtk_tree_view_get_column (GTK_TREE_VIEW (view), 0));
           gtk_icon_size_lookup (GTK_ICON_SIZE_MENU, &icon_width, &icon_height);
-          if (event->button == 1 && event->x >= column_width - icon_width - 3)
+          if (event->button == 1 && event->x > column_width)
             {
               /* check if that shortcut actually has an eject button */
               model = gtk_tree_view_get_model (GTK_TREE_VIEW (view));
@@ -533,10 +539,10 @@ thunar_shortcuts_view_key_release_event (GtkWidget   *widget,
   /* work nicer with keyboard navigation */
   switch (event->keyval)
     {
-    case GDK_Up:
-    case GDK_Down:
-    case GDK_KP_Up:
-    case GDK_KP_Down:
+    case GDK_KEY_Up:
+    case GDK_KEY_Down:
+    case GDK_KEY_KP_Up:
+    case GDK_KEY_KP_Down:
       thunar_shortcuts_view_open (view, OPEN_IN_VIEW);
 
       /* keep focus on us */
@@ -591,8 +597,8 @@ thunar_shortcuts_view_drag_data_received (GtkWidget        *widget,
   if (G_LIKELY (!view->drop_data_ready))
     {
       /* extract the URI list from the selection data (if valid) */
-      if (info == TEXT_URI_LIST && selection_data->format == 8 && selection_data->length > 0)
-        view->drop_file_list = thunar_g_file_list_new_from_string ((const gchar *) selection_data->data);
+      if (info == TEXT_URI_LIST && gtk_selection_data_get_format (selection_data) == 8 && gtk_selection_data_get_length (selection_data) > 0)
+        view->drop_file_list = thunar_g_file_list_new_from_string ((const gchar *) gtk_selection_data_get_data (selection_data));
 
       /* reset the state */
       view->drop_data_ready = TRUE;
@@ -793,11 +799,11 @@ thunar_shortcuts_view_drag_motion (GtkWidget      *widget,
   else if (target == gdk_atom_intern_static_string ("GTK_TREE_MODEL_ROW"))
     {
       /* check the action that should be performed */
-      if (context->suggested_action == GDK_ACTION_LINK || (context->actions & GDK_ACTION_LINK) != 0)
+      if (gdk_drag_context_get_suggested_action (context) == GDK_ACTION_LINK || (gdk_drag_context_get_actions (context) & GDK_ACTION_LINK) != 0)
         action = GDK_ACTION_LINK;
-      else if (context->suggested_action == GDK_ACTION_COPY || (context->actions & GDK_ACTION_COPY) != 0)
+      else if (gdk_drag_context_get_suggested_action (context) == GDK_ACTION_COPY || (gdk_drag_context_get_actions (context) & GDK_ACTION_COPY) != 0)
         action = GDK_ACTION_COPY;
-      else if (context->suggested_action == GDK_ACTION_MOVE || (context->actions & GDK_ACTION_MOVE) != 0)
+      else if (gdk_drag_context_get_suggested_action (context) == GDK_ACTION_MOVE || (gdk_drag_context_get_actions (context) & GDK_ACTION_MOVE) != 0)
         action = GDK_ACTION_MOVE;
       else
         return FALSE;
@@ -1058,7 +1064,7 @@ thunar_shortcuts_view_context_menu (ThunarShortcutsView *view,
   gboolean             mutable;
   ThunarDevice        *device;
   GList               *providers, *lp;
-  GList               *actions = NULL, *tmp;
+  GList               *items = NULL, *tmp;
   ThunarShortcutGroup  group;
   gboolean             is_header;
   GFile               *mount_point;
@@ -1100,7 +1106,7 @@ thunar_shortcuts_view_context_menu (ThunarShortcutsView *view,
   /* set the stock icon */
   image = gtk_image_new_from_stock (GTK_STOCK_OPEN, GTK_ICON_SIZE_MENU);
   gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), image);
-  
+
   /* append the "Open in New Tab" menu action */
   item = gtk_image_menu_item_new_with_mnemonic (_("Open in New Tab"));
   g_signal_connect_swapped (G_OBJECT (item), "activate", G_CALLBACK (thunar_shortcuts_view_open_in_new_tab_clicked), view);
@@ -1217,16 +1223,16 @@ thunar_shortcuts_view_context_menu (ThunarShortcutsView *view,
           /* determine the toplevel window we belong to */
           window = gtk_widget_get_toplevel (GTK_WIDGET (view));
 
-          /* load the actions offered by the menu providers */
+          /* load the menu items offered by the menu providers */
           for (lp = providers; lp != NULL; lp = lp->next)
             {
-              tmp = thunarx_menu_provider_get_folder_actions (lp->data, window, THUNARX_FILE_INFO (file));
-              actions = g_list_concat (actions, tmp);
+              tmp = thunarx_menu_provider_get_folder_menu_items (lp->data, window, THUNARX_FILE_INFO (file));
+              items = g_list_concat (items, tmp);
               g_object_unref (G_OBJECT (lp->data));
             }
           g_list_free (providers);
 
-          if (actions != NULL)
+          if (items != NULL)
             {
               /* append a menu separator */
               item = gtk_separator_menu_item_new ();
@@ -1234,19 +1240,11 @@ thunar_shortcuts_view_context_menu (ThunarShortcutsView *view,
               gtk_widget_show (item);
             }
 
-          /* add the actions to the menu */
-          for (lp = actions; lp != NULL; lp = lp->next)
-            {
-              item = gtk_action_create_menu_item (GTK_ACTION (lp->data));
-              gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
-              gtk_widget_show (item);
-
-              /* release the reference on the action */
-              g_object_unref (G_OBJECT (lp->data));
-            }
+          /* add the menu items to the menu */
+          thunar_menu_util_add_items_to_menu (menu, items);
 
           /* cleanup */
-          g_list_free (actions);
+          g_list_free (items);
         }
     }
 
@@ -1457,11 +1455,11 @@ thunar_shortcuts_view_compute_drop_actions (ThunarShortcutsView     *view,
   if (G_UNLIKELY (actions == 0))
     {
       /* check the action that should be performed */
-      if (context->suggested_action == GDK_ACTION_LINK || (context->actions & GDK_ACTION_LINK) != 0)
+      if (gdk_drag_context_get_suggested_action (context) == GDK_ACTION_LINK || (gdk_drag_context_get_actions (context) & GDK_ACTION_LINK) != 0)
         actions = GDK_ACTION_LINK;
-      else if (context->suggested_action == GDK_ACTION_COPY || (context->actions & GDK_ACTION_COPY) != 0)
+      else if (gdk_drag_context_get_suggested_action (context) == GDK_ACTION_COPY || (gdk_drag_context_get_actions (context) & GDK_ACTION_COPY) != 0)
         actions = GDK_ACTION_COPY;
-      else if (context->suggested_action == GDK_ACTION_MOVE || (context->actions & GDK_ACTION_MOVE) != 0)
+      else if (gdk_drag_context_get_suggested_action (context) == GDK_ACTION_MOVE || (gdk_drag_context_get_actions (context) & GDK_ACTION_MOVE) != 0)
         actions = GDK_ACTION_MOVE;
       else
         return 0;
@@ -2135,5 +2133,3 @@ thunar_shortcuts_view_select_by_file (ThunarShortcutsView *view,
   else
      gtk_tree_selection_unselect_all (selection);
 }
-
-

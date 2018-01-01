@@ -163,18 +163,18 @@ thunar_sbr_remove_renamer_init (ThunarSbrRemoveRenamer *remove_renamer)
   AtkObject      *object;
   GtkWidget      *combo;
   GtkWidget      *label;
-  GtkWidget      *table;
+  GtkWidget      *grid;
   guint           n;
 
-  table = gtk_table_new (2, 3, FALSE);
-  gtk_table_set_row_spacings (GTK_TABLE (table), 6);
-  gtk_table_set_col_spacings (GTK_TABLE (table), 12);
-  gtk_box_pack_start (GTK_BOX (remove_renamer), table, TRUE, TRUE, 0);
-  gtk_widget_show (table);
+  grid = gtk_grid_new ();
+  gtk_grid_set_column_spacing (GTK_GRID (grid), 12);
+  gtk_grid_set_row_spacing (GTK_GRID (grid), 6);
+  gtk_box_pack_start (GTK_BOX (remove_renamer), grid, TRUE, TRUE, 0);
+  gtk_widget_show (grid);
 
   label = gtk_label_new_with_mnemonic (_("Remove _From Position:"));
-  gtk_misc_set_alignment (GTK_MISC (label), 1.0f, 0.5f);
-  gtk_table_attach (GTK_TABLE (table), label, 0, 1, 0, 1, GTK_FILL, 0, 0, 0);
+  gtk_label_set_xalign (GTK_LABEL (label), 1.0f);
+  gtk_grid_attach (GTK_GRID (grid), label, 0, 0, 1, 1);
   gtk_widget_show (label);
 
   remove_renamer->start_spinner = gtk_spin_button_new_with_range (0u, G_MAXUINT, 1u);
@@ -184,7 +184,7 @@ thunar_sbr_remove_renamer_init (ThunarSbrRemoveRenamer *remove_renamer)
   gtk_spin_button_set_digits (GTK_SPIN_BUTTON (remove_renamer->start_spinner), 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (remove_renamer->start_spinner), TRUE);
   gtk_spin_button_set_snap_to_ticks (GTK_SPIN_BUTTON (remove_renamer->start_spinner), TRUE);
-  gtk_table_attach (GTK_TABLE (table), remove_renamer->start_spinner, 1, 2, 0, 1, GTK_FILL, 0, 0, 0);
+  gtk_grid_attach (GTK_GRID (grid), remove_renamer->start_spinner, 1, 0, 1, 1);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label), remove_renamer->start_spinner);
   gtk_widget_show (remove_renamer->start_spinner);
 
@@ -198,18 +198,18 @@ thunar_sbr_remove_renamer_init (ThunarSbrRemoveRenamer *remove_renamer)
   atk_relation_set_add (relations, relation);
   g_object_unref (G_OBJECT (relation));
 
-  combo = gtk_combo_box_new_text ();
+  combo = gtk_combo_box_text_new ();
   klass = g_type_class_ref (THUNAR_SBR_TYPE_OFFSET_MODE);
   for (n = 0; n < klass->n_values; ++n)
-    gtk_combo_box_append_text (GTK_COMBO_BOX (combo), _(klass->values[n].value_nick));
+    gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (combo), _(klass->values[n].value_nick));
   exo_mutual_binding_new (G_OBJECT (remove_renamer), "start-offset-mode", G_OBJECT (combo), "active");
-  gtk_table_attach (GTK_TABLE (table), combo, 2, 3, 0, 1, GTK_FILL, 0, 0, 0);
+  gtk_grid_attach (GTK_GRID (grid), combo, 2, 0, 1, 1);
   g_type_class_unref (klass);
   gtk_widget_show (combo);
 
   label = gtk_label_new_with_mnemonic (_("_To Position:"));
-  gtk_misc_set_alignment (GTK_MISC (label), 1.0f, 0.5f);
-  gtk_table_attach (GTK_TABLE (table), label, 0, 1, 1, 2, GTK_FILL, 0, 0, 0);
+  gtk_label_set_xalign (GTK_LABEL (label), 1.0f);
+  gtk_grid_attach (GTK_GRID (grid), label, 0, 1, 1, 1);
   gtk_widget_show (label);
 
   remove_renamer->end_spinner = gtk_spin_button_new_with_range (0u, G_MAXUINT, 1u);
@@ -219,7 +219,7 @@ thunar_sbr_remove_renamer_init (ThunarSbrRemoveRenamer *remove_renamer)
   gtk_spin_button_set_digits (GTK_SPIN_BUTTON (remove_renamer->end_spinner), 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (remove_renamer->end_spinner), TRUE);
   gtk_spin_button_set_snap_to_ticks (GTK_SPIN_BUTTON (remove_renamer->end_spinner), TRUE);
-  gtk_table_attach (GTK_TABLE (table), remove_renamer->end_spinner, 1, 2, 1, 2, GTK_FILL, 0, 0, 0);
+  gtk_grid_attach (GTK_GRID (grid), remove_renamer->end_spinner, 1, 1, 1, 1);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label), remove_renamer->end_spinner);
   gtk_widget_show (remove_renamer->end_spinner);
 
@@ -233,12 +233,12 @@ thunar_sbr_remove_renamer_init (ThunarSbrRemoveRenamer *remove_renamer)
   atk_relation_set_add (relations, relation);
   g_object_unref (G_OBJECT (relation));
 
-  combo = gtk_combo_box_new_text ();
+  combo = gtk_combo_box_text_new ();
   klass = g_type_class_ref (THUNAR_SBR_TYPE_OFFSET_MODE);
   for (n = 0; n < klass->n_values; ++n)
-    gtk_combo_box_append_text (GTK_COMBO_BOX (combo), _(klass->values[n].value_nick));
+    gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (combo), _(klass->values[n].value_nick));
   exo_mutual_binding_new (G_OBJECT (remove_renamer), "end-offset-mode", G_OBJECT (combo), "active");
-  gtk_table_attach (GTK_TABLE (table), combo, 2, 3, 1, 2, GTK_FILL, 0, 0, 0);
+  gtk_grid_attach (GTK_GRID (grid), combo, 2, 1, 1, 1);
   g_type_class_unref (klass);
   gtk_widget_show (combo);
 }
@@ -368,10 +368,8 @@ thunar_sbr_remove_renamer_process (ThunarxRenamer  *renamer,
 static void
 thunar_sbr_remove_renamer_update (ThunarSbrRemoveRenamer *remove_renamer)
 {
-  GdkColor back;
-  GdkColor text;
-  guint    start_offset;
-  guint    end_offset;
+  guint start_offset;
+  guint end_offset;
 
   /* check if the renamer is realized */
   if (gtk_widget_get_realized (GTK_WIDGET (remove_renamer)))
@@ -381,28 +379,17 @@ thunar_sbr_remove_renamer_update (ThunarSbrRemoveRenamer *remove_renamer)
                  ? remove_renamer->end_offset : (G_MAXUINT - remove_renamer->end_offset);
       start_offset = (remove_renamer->start_offset_mode == THUNAR_SBR_OFFSET_MODE_LEFT)
                    ? remove_renamer->start_offset : (G_MAXUINT - remove_renamer->start_offset);
+
+      /* highlight invalid input by using theme specific colors */
       if (G_UNLIKELY (start_offset >= end_offset))
         {
-          /* if GTK+ wouldn't be that stupid with style properties and 
-           * type plugins, this would be themable, but unfortunately
-           * GTK+ is totally broken, and so it's hardcoded.
-           */
-          gdk_color_parse ("#ff6666", &back);
-          gdk_color_parse ("White", &text);
-
-          /* setup a red background/text color to indicate the error */
-          gtk_widget_modify_base (remove_renamer->end_spinner, GTK_STATE_NORMAL, &back);
-          gtk_widget_modify_text (remove_renamer->end_spinner, GTK_STATE_NORMAL, &text);
-          gtk_widget_modify_base (remove_renamer->start_spinner, GTK_STATE_NORMAL, &back);
-          gtk_widget_modify_text (remove_renamer->start_spinner, GTK_STATE_NORMAL, &text);
+          gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (remove_renamer->start_spinner)), "error");
+          gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (remove_renamer->end_spinner)), "error");
         }
       else
         {
-          /* reset background/text colors */
-          gtk_widget_modify_base (remove_renamer->end_spinner, GTK_STATE_NORMAL, NULL);
-          gtk_widget_modify_text (remove_renamer->end_spinner, GTK_STATE_NORMAL, NULL);
-          gtk_widget_modify_base (remove_renamer->start_spinner, GTK_STATE_NORMAL, NULL);
-          gtk_widget_modify_text (remove_renamer->start_spinner, GTK_STATE_NORMAL, NULL);
+          gtk_style_context_remove_class (gtk_widget_get_style_context (GTK_WIDGET (remove_renamer->start_spinner)), "error");
+          gtk_style_context_remove_class (gtk_widget_get_style_context (GTK_WIDGET (remove_renamer->end_spinner)), "error");
         }
     }
 
@@ -454,7 +441,7 @@ thunar_sbr_remove_renamer_get_end_offset (ThunarSbrRemoveRenamer *remove_renamer
  * Sets the end offset of @remove_renamer to @end_offset.
  **/
 void
-thunar_sbr_remove_renamer_set_end_offset (ThunarSbrRemoveRenamer *remove_renamer,  
+thunar_sbr_remove_renamer_set_end_offset (ThunarSbrRemoveRenamer *remove_renamer,
                                           guint                   end_offset)
 {
   g_return_if_fail (THUNAR_SBR_IS_REMOVE_RENAMER (remove_renamer));
@@ -546,7 +533,7 @@ thunar_sbr_remove_renamer_get_start_offset (ThunarSbrRemoveRenamer *remove_renam
  * Sets the start offset of @remove_renamer to @start_offset.
  **/
 void
-thunar_sbr_remove_renamer_set_start_offset (ThunarSbrRemoveRenamer *remove_renamer,  
+thunar_sbr_remove_renamer_set_start_offset (ThunarSbrRemoveRenamer *remove_renamer,
                                             guint                   start_offset)
 {
   g_return_if_fail (THUNAR_SBR_IS_REMOVE_RENAMER (remove_renamer));

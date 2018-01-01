@@ -53,11 +53,10 @@ static void thunar_shortcuts_icon_renderer_set_property (GObject                
                                                          const GValue                     *value,
                                                          GParamSpec                       *pspec);
 static void thunar_shortcuts_icon_renderer_render       (GtkCellRenderer                  *renderer,
-                                                         GdkWindow                        *window,
+                                                         cairo_t                          *cr,
                                                          GtkWidget                        *widget,
-                                                         GdkRectangle                     *background_area,
-                                                         GdkRectangle                     *cell_area,
-                                                         GdkRectangle                     *expose_area,
+                                                         const GdkRectangle               *background_area,
+                                                         const GdkRectangle               *cell_area,
                                                          GtkCellRendererState              flags);
 
 
@@ -126,8 +125,7 @@ static void
 thunar_shortcuts_icon_renderer_init (ThunarShortcutsIconRenderer *shortcuts_icon_renderer)
 {
   /* no padding please */
-  GTK_CELL_RENDERER (shortcuts_icon_renderer)->xpad = 0;
-  GTK_CELL_RENDERER (shortcuts_icon_renderer)->ypad = 0;
+  gtk_cell_renderer_set_padding (GTK_CELL_RENDERER (shortcuts_icon_renderer), 0, 0);
 }
 
 
@@ -206,30 +204,31 @@ thunar_shortcuts_icon_renderer_set_property (GObject      *object,
 
 static void
 thunar_shortcuts_icon_renderer_render (GtkCellRenderer     *renderer,
-                                       GdkWindow           *window,
+                                       cairo_t             *cr,
                                        GtkWidget           *widget,
-                                       GdkRectangle        *background_area,
-                                       GdkRectangle        *cell_area,
-                                       GdkRectangle        *expose_area,
+                                       const GdkRectangle  *background_area,
+                                       const GdkRectangle  *cell_area,
                                        GtkCellRendererState flags)
 {
   ThunarShortcutsIconRenderer *shortcuts_icon_renderer = THUNAR_SHORTCUTS_ICON_RENDERER (renderer);
   GtkIconTheme                *icon_theme;
-  GdkRectangle                 draw_area;
   GdkRectangle                 icon_area;
+  GdkRectangle                 clip_area;
   GtkIconInfo                 *icon_info;
   GdkPixbuf                   *icon = NULL;
   GdkPixbuf                   *temp;
   GIcon                       *gicon;
-  cairo_t                     *cr;
   gdouble                      alpha;
+
+  if (!gdk_cairo_get_clip_rectangle (cr, &clip_area))
+    return;
 
   /* check if we have a volume set */
   if (G_UNLIKELY (shortcuts_icon_renderer->gicon != NULL
       ||  shortcuts_icon_renderer->device != NULL))
     {
       /* load the volume icon */
-      icon_theme = gtk_icon_theme_get_for_screen (gdk_drawable_get_screen (window));
+      icon_theme = gtk_icon_theme_get_for_screen (gtk_widget_get_screen (widget));
 
       /* look up the icon info */
       if (shortcuts_icon_renderer->gicon != NULL)
@@ -237,15 +236,16 @@ thunar_shortcuts_icon_renderer_render (GtkCellRenderer     *renderer,
       else
         gicon = thunar_device_get_icon (shortcuts_icon_renderer->device);
 
-      icon_info = gtk_icon_theme_lookup_by_gicon (icon_theme, gicon, cell_area->width, 
-                                                  GTK_ICON_LOOKUP_USE_BUILTIN);
+      icon_info = gtk_icon_theme_lookup_by_gicon (icon_theme, gicon, cell_area->width,
+                                                  GTK_ICON_LOOKUP_USE_BUILTIN |
+                                                  GTK_ICON_LOOKUP_FORCE_SIZE);
       g_object_unref (gicon);
 
       /* try to load the icon */
       if (G_LIKELY (icon_info != NULL))
         {
           icon = gtk_icon_info_load_icon (icon_info, NULL);
-          gtk_icon_info_free (icon_info);
+          g_object_unref (icon_info);
         }
 
       /* render the icon (if any) */
@@ -279,14 +279,11 @@ thunar_shortcuts_icon_renderer_render (GtkCellRenderer     *renderer,
           icon_area.y = cell_area->y + (cell_area->height - icon_area.height) / 2;
 
           /* check whether the icon is affected by the expose event */
-          if (gdk_rectangle_intersect (expose_area, &icon_area, &draw_area))
+          if (gdk_rectangle_intersect (&clip_area, &icon_area, NULL))
             {
               /* render the invalid parts of the icon */
-              cr = gdk_cairo_create (window);
               thunar_gdk_cairo_set_source_pixbuf (cr, icon, icon_area.x, icon_area.y);
-              gdk_cairo_rectangle (cr, &draw_area);
               cairo_paint_with_alpha (cr, alpha);
-              cairo_destroy (cr);
             }
 
           /* cleanup */
@@ -296,8 +293,8 @@ thunar_shortcuts_icon_renderer_render (GtkCellRenderer     *renderer,
   else
     {
       /* fallback to the default icon renderering */
-      (*GTK_CELL_RENDERER_CLASS (thunar_shortcuts_icon_renderer_parent_class)->render) (renderer, window, widget, background_area,
-                                                                                        cell_area, expose_area, flags);
+      (*GTK_CELL_RENDERER_CLASS (thunar_shortcuts_icon_renderer_parent_class)->render) (renderer, cr, widget, background_area,
+                                                                                        cell_area, flags);
     }
 }
 

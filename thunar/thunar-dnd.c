@@ -3,18 +3,18 @@
  * Copyright (c) 2005-2006 Benedikt Meurer <benny@xfce.org>
  * Copyright (c) 2009-2011 Jannis Pohlmann <jannis@xfce.org>
  *
- * This program is free software; you can redistribute it and/or 
+ * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of 
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public 
- * License along with this program; if not, write to the Free 
+ * You should have received a copy of the GNU General Public
+ * License along with this program; if not, write to the Free
  * Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  * Boston, MA 02110-1301, USA.
  */
@@ -29,6 +29,7 @@
 #include <thunar/thunar-dialogs.h>
 #include <thunar/thunar-dnd.h>
 #include <thunar/thunar-gtk-extensions.h>
+#include <thunar/thunar-menu-util.h>
 #include <thunar/thunar-private.h>
 
 
@@ -81,7 +82,7 @@ thunar_dnd_ask (GtkWidget    *widget,
   GtkWidget              *item;
   GList                  *file_list = NULL;
   GList                  *providers = NULL;
-  GList                  *actions = NULL;
+  GList                  *items = NULL;
   GList                  *lp;
   guint                   n;
 
@@ -138,28 +139,21 @@ thunar_dnd_ask (GtkWidget    *widget,
           /* load the menu providers from the provider factory */
           providers = thunarx_provider_factory_list_providers (factory, THUNARX_TYPE_MENU_PROVIDER);
 
-          /* load the dnd actions offered by the menu providers */
+          /* load the dnd menu items offered by the menu providers */
           for (lp = providers; lp != NULL; lp = lp->next)
             {
-              /* merge the actions from this provider */
-              actions = g_list_concat (actions, thunarx_menu_provider_get_dnd_actions (lp->data, window, THUNARX_FILE_INFO (folder), file_list));
+              /* merge the menu items from this provider */
+              items = g_list_concat (items, thunarx_menu_provider_get_dnd_menu_items (lp->data, window, THUNARX_FILE_INFO (folder), file_list));
               g_object_unref (G_OBJECT (lp->data));
             }
           g_list_free (providers);
 
-          /* check if we have atleast one action */
-          if (G_UNLIKELY (actions != NULL))
+          /* check if we have at least one item */
+          if (G_UNLIKELY (items != NULL))
             {
-              /* add menu items for all actions */
-              for (lp = actions; lp != NULL; lp = lp->next)
-                {
-                  /* add a menu item for the action */
-                  item = gtk_action_create_menu_item (lp->data);
-                  gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
-                  g_object_unref (G_OBJECT (lp->data));
-                  gtk_widget_show (item);
-                }
-              g_list_free (actions);
+              /* add menu items for all items */
+              thunar_menu_util_add_items_to_menu (menu, items);
+              g_list_free (items);
 
               /* append another separator */
               item = gtk_separator_menu_item_new ();
@@ -170,7 +164,7 @@ thunar_dnd_ask (GtkWidget    *widget,
     }
 
   /* append the cancel item */
-  item = gtk_image_menu_item_new_from_stock (GTK_STOCK_CANCEL, NULL);
+  item = gtk_menu_item_new_with_mnemonic (_("_Cancel"));
   gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
   gtk_widget_show (item);
 

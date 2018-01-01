@@ -51,6 +51,70 @@ void             thunar_gtk_widget_set_tooltip                (GtkWidget        
 
 GMountOperation *thunar_gtk_mount_operation_new               (gpointer            parent);
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+
+static inline int
+thunar_gtk_widget_get_allocation_x (GtkWidget *widget)
+{
+    GtkAllocation allocation;
+
+    gtk_widget_get_allocation (widget, &allocation);
+
+    return allocation.x;
+}
+
+static inline int
+thunar_gtk_widget_get_allocation_y (GtkWidget *widget)
+{
+    GtkAllocation allocation;
+
+    gtk_widget_get_allocation (widget, &allocation);
+
+    return allocation.y;
+}
+
+static inline int
+thunar_gtk_widget_get_allocation_width (GtkWidget *widget)
+{
+    GtkAllocation allocation;
+
+    gtk_widget_get_allocation (widget, &allocation);
+
+    return allocation.width;
+}
+
+static inline int
+thunar_gtk_widget_get_allocation_height (GtkWidget *widget)
+{
+    GtkAllocation allocation;
+
+    gtk_widget_get_allocation (widget, &allocation);
+
+    return allocation.height;
+}
+
+static inline int
+thunar_gtk_widget_get_requisition_width (GtkWidget *widget)
+{
+    GtkRequisition requisition;
+
+    gtk_widget_get_requisition (widget, &requisition);
+
+    return requisition.width;
+}
+
+static inline int
+thunar_gtk_widget_get_requisition_height (GtkWidget *widget)
+{
+    GtkRequisition requisition;
+
+    gtk_widget_get_requisition (widget, &requisition);
+
+    return requisition.height;
+}
+
+G_GNUC_END_IGNORE_DEPRECATIONS
+
 G_END_DECLS;
 
 #endif /* !__THUNAR_GTK_EXTENSIONS_H__ */

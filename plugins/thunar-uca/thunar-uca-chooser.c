@@ -81,14 +81,32 @@ THUNARX_DEFINE_TYPE (ThunarUcaChooser, thunar_uca_chooser, GTK_TYPE_DIALOG);
 static void
 thunar_uca_chooser_class_init (ThunarUcaChooserClass *klass)
 {
-  GtkDialogClass *gtkdialog_class;
-  GtkWidgetClass *gtkwidget_class;
+  GtkDialogClass *dialog_class;
+  GtkWidgetClass *widget_class;
 
-  gtkwidget_class = GTK_WIDGET_CLASS (klass);
-  gtkwidget_class->key_press_event = thunar_uca_chooser_key_press_event;
+  widget_class = GTK_WIDGET_CLASS (klass);
+  widget_class->key_press_event = thunar_uca_chooser_key_press_event;
 
-  gtkdialog_class = GTK_DIALOG_CLASS (klass);
-  gtkdialog_class->response = thunar_uca_chooser_response;
+  dialog_class = GTK_DIALOG_CLASS (klass);
+  dialog_class->response = thunar_uca_chooser_response;
+
+  /* Setup the template xml */
+  gtk_widget_class_set_template_from_resource (widget_class, "/org/xfce/thunar/uca/chooser.ui");
+
+  /* bind stuff */
+  gtk_widget_class_bind_template_child (widget_class, ThunarUcaChooser, treeview);
+  gtk_widget_class_bind_template_child (widget_class, ThunarUcaChooser, add_button);
+  gtk_widget_class_bind_template_child (widget_class, ThunarUcaChooser, edit_button);
+  gtk_widget_class_bind_template_child (widget_class, ThunarUcaChooser, delete_button);
+  gtk_widget_class_bind_template_child (widget_class, ThunarUcaChooser, up_button);
+  gtk_widget_class_bind_template_child (widget_class, ThunarUcaChooser, down_button);
+
+  gtk_widget_class_bind_template_callback(widget_class, thunar_uca_chooser_add_clicked);
+  gtk_widget_class_bind_template_callback(widget_class, thunar_uca_chooser_edit_clicked);
+  gtk_widget_class_bind_template_callback(widget_class, thunar_uca_chooser_delete_clicked);
+  gtk_widget_class_bind_template_callback(widget_class, thunar_uca_chooser_up_clicked);
+  gtk_widget_class_bind_template_callback(widget_class, thunar_uca_chooser_down_clicked);
+  gtk_widget_class_bind_template_callback(widget_class, thunar_uca_chooser_selection_changed);
 }
 
 
@@ -97,57 +115,25 @@ static void
 thunar_uca_chooser_init (ThunarUcaChooser *uca_chooser)
 {
   GtkTreeViewColumn *column;
-  GtkTreeSelection  *selection;
   GtkCellRenderer   *renderer;
   ThunarUcaModel    *uca_model;
-  GtkWidget         *image;
-  GtkWidget         *label;
-  GtkWidget         *hbox;
-  GtkWidget         *swin;
-  GtkWidget         *vbox;
+  gboolean           have_header_bar;
+
+  /* Initialize the template for this instance */
+  gtk_widget_init_template (GTK_WIDGET (uca_chooser));
 
   /* configure the dialog window */
-  gtk_dialog_add_button (GTK_DIALOG (uca_chooser), GTK_STOCK_HELP, GTK_RESPONSE_HELP);
-  gtk_dialog_add_button (GTK_DIALOG (uca_chooser), GTK_STOCK_CLOSE, GTK_RESPONSE_CLOSE);
+  g_object_get (uca_chooser, "use-header-bar", &have_header_bar, NULL);
+
+  if (!have_header_bar)
+    {
+      /* add a regular close button, the header bar already provides one */
+      gtk_dialog_add_button (GTK_DIALOG (uca_chooser), _("_Close"), GTK_RESPONSE_CLOSE);
+    }
+
   gtk_dialog_set_default_response (GTK_DIALOG (uca_chooser), GTK_RESPONSE_CLOSE);
-  gtk_dialog_set_has_separator (GTK_DIALOG (uca_chooser), FALSE);
-  gtk_window_set_default_size (GTK_WINDOW (uca_chooser), 500, 350);
-  gtk_window_set_destroy_with_parent (GTK_WINDOW (uca_chooser), TRUE);
-  gtk_window_set_title (GTK_WINDOW (uca_chooser), _("Custom Actions"));
 
-  hbox = gtk_hbox_new (FALSE, 3);
-  gtk_container_set_border_width (GTK_CONTAINER (hbox), 6);
-  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (uca_chooser)->vbox), hbox, FALSE, TRUE, 0);
-  gtk_widget_show (hbox);
-
-  image = gtk_image_new_from_stock (GTK_STOCK_DIALOG_INFO, GTK_ICON_SIZE_DND);
-  gtk_box_pack_start (GTK_BOX (hbox), image, FALSE, FALSE, 0);
-  gtk_widget_show (image);
-
-  label = gtk_label_new (_("You can configure custom actions that will appear in the\n"
-                           "file managers context menus for certain kinds of files."));
-  gtk_misc_set_alignment (GTK_MISC (label), 0.0f, 0.5f);
-  gtk_box_pack_start (GTK_BOX (hbox), label, TRUE, TRUE, 0);
-  gtk_widget_show (label);
-
-  hbox = gtk_hbox_new (FALSE, 3);
-  gtk_container_set_border_width (GTK_CONTAINER (hbox), 6);
-  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (uca_chooser)->vbox), hbox, TRUE, TRUE, 0);
-  gtk_widget_show (hbox);
-
-  swin = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (swin), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (swin), GTK_SHADOW_IN);
-  gtk_box_pack_start (GTK_BOX (hbox), swin, TRUE, TRUE, 0);
-  gtk_widget_show (swin);
-
-  uca_chooser->treeview = gtk_tree_view_new ();
-  gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (uca_chooser->treeview), FALSE);
-  gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (uca_chooser->treeview), TRUE);
-  gtk_container_add (GTK_CONTAINER (swin), uca_chooser->treeview);
-  g_signal_connect_swapped (G_OBJECT (uca_chooser->treeview), "row-activated", G_CALLBACK (thunar_uca_chooser_edit_clicked), uca_chooser);
-  gtk_widget_show (uca_chooser->treeview);
-
+  /* configure the tree view */
   uca_model = thunar_uca_model_get_default ();
   gtk_tree_view_set_model (GTK_TREE_VIEW (uca_chooser->treeview), GTK_TREE_MODEL (uca_model));
   g_object_unref (G_OBJECT (uca_model));
@@ -165,65 +151,8 @@ thunar_uca_chooser_init (ThunarUcaChooser *uca_chooser)
   gtk_tree_view_column_pack_start (column, renderer, TRUE);
   gtk_tree_view_column_set_attributes (column, renderer, "markup", THUNAR_UCA_MODEL_COLUMN_STOCK_LABEL, NULL);
 
-  vbox = gtk_vbox_new (FALSE, 3);
-  gtk_box_pack_start (GTK_BOX (hbox), vbox, FALSE, FALSE, 0);
-  gtk_widget_show (vbox);
-
-  uca_chooser->add_button = gtk_button_new ();
-  gtk_widget_set_tooltip_text (uca_chooser->add_button, _("Add a new custom action."));
-  gtk_box_pack_start (GTK_BOX (vbox), uca_chooser->add_button, FALSE, FALSE, 0);
-  g_signal_connect_swapped (G_OBJECT (uca_chooser->add_button), "clicked", G_CALLBACK (thunar_uca_chooser_add_clicked), uca_chooser);
-  gtk_widget_show (uca_chooser->add_button);
-
-  image = gtk_image_new_from_stock (GTK_STOCK_ADD, GTK_ICON_SIZE_BUTTON);
-  gtk_container_add (GTK_CONTAINER (uca_chooser->add_button), image);
-  gtk_widget_show (image);
-
-  uca_chooser->edit_button = gtk_button_new ();
-  gtk_widget_set_tooltip_text (uca_chooser->edit_button, _("Edit the currently selected action."));
-  gtk_box_pack_start (GTK_BOX (vbox), uca_chooser->edit_button, FALSE, FALSE, 0);
-  g_signal_connect_swapped (G_OBJECT (uca_chooser->edit_button), "clicked", G_CALLBACK (thunar_uca_chooser_edit_clicked), uca_chooser);
-  gtk_widget_show (uca_chooser->edit_button);
-
-  image = gtk_image_new_from_stock (GTK_STOCK_EDIT, GTK_ICON_SIZE_BUTTON);
-  gtk_container_add (GTK_CONTAINER (uca_chooser->edit_button), image);
-  gtk_widget_show (image);
-
-  uca_chooser->delete_button = gtk_button_new ();
-  gtk_widget_set_tooltip_text (uca_chooser->delete_button, _("Delete the currently selected action."));
-  gtk_box_pack_start (GTK_BOX (vbox), uca_chooser->delete_button, FALSE, FALSE, 0);
-  g_signal_connect_swapped (G_OBJECT (uca_chooser->delete_button), "clicked", G_CALLBACK (thunar_uca_chooser_delete_clicked), uca_chooser);
-  gtk_widget_show (uca_chooser->delete_button);
-
-  image = gtk_image_new_from_stock (GTK_STOCK_DELETE, GTK_ICON_SIZE_BUTTON);
-  gtk_container_add (GTK_CONTAINER (uca_chooser->delete_button), image);
-  gtk_widget_show (image);
-
-  uca_chooser->up_button = gtk_button_new ();
-  gtk_widget_set_tooltip_text (uca_chooser->up_button, _("Move the currently selected action up by one row."));
-  gtk_box_pack_start (GTK_BOX (vbox), uca_chooser->up_button, FALSE, FALSE, 0);
-  g_signal_connect_swapped (G_OBJECT (uca_chooser->up_button), "clicked", G_CALLBACK (thunar_uca_chooser_up_clicked), uca_chooser);
-  gtk_widget_show (uca_chooser->up_button);
-
-  image = gtk_image_new_from_stock (GTK_STOCK_GO_UP, GTK_ICON_SIZE_BUTTON);
-  gtk_container_add (GTK_CONTAINER (uca_chooser->up_button), image);
-  gtk_widget_show (image);
-
-  uca_chooser->down_button = gtk_button_new ();
-  gtk_widget_set_tooltip_text (uca_chooser->down_button, _("Move the currently selected action down by one row."));
-  gtk_box_pack_start (GTK_BOX (vbox), uca_chooser->down_button, FALSE, FALSE, 0);
-  g_signal_connect_swapped (G_OBJECT (uca_chooser->down_button), "clicked", G_CALLBACK (thunar_uca_chooser_down_clicked), uca_chooser);
-  gtk_widget_show (uca_chooser->down_button);
-
-  image = gtk_image_new_from_stock (GTK_STOCK_GO_DOWN, GTK_ICON_SIZE_BUTTON);
-  gtk_container_add (GTK_CONTAINER (uca_chooser->down_button), image);
-  gtk_widget_show (image);
-
-  /* configure the tree view selection after the buttons have been created */
-  selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (uca_chooser->treeview));
-  gtk_tree_selection_set_mode (selection, GTK_SELECTION_SINGLE);
-  g_signal_connect_swapped (G_OBJECT (selection), "changed", G_CALLBACK (thunar_uca_chooser_selection_changed), uca_chooser);
-  thunar_uca_chooser_selection_changed (uca_chooser, selection);
+  /* configure the tree view selection */
+  thunar_uca_chooser_selection_changed (uca_chooser, gtk_tree_view_get_selection (GTK_TREE_VIEW (uca_chooser->treeview)));
 }
 
 
@@ -233,7 +162,7 @@ thunar_uca_chooser_key_press_event (GtkWidget   *widget,
                                     GdkEventKey *event)
 {
   /* close chooser window on Esc key press */
-  if (G_UNLIKELY (event->keyval == GDK_Escape))
+  if (G_UNLIKELY (event->keyval == GDK_KEY_Escape))
     {
       gtk_dialog_response (GTK_DIALOG (widget), GTK_RESPONSE_CLOSE);
       return TRUE;
@@ -328,11 +257,15 @@ thunar_uca_chooser_open_editor (ThunarUcaChooser *uca_chooser,
   GtkTreeModel     *model;
   GtkTreeIter       iter;
   GtkWidget        *editor;
+  gboolean          use_header_bar = FALSE;
 
   g_return_if_fail (THUNAR_UCA_IS_CHOOSER (uca_chooser));
 
   /* allocate the new editor */
-  editor = g_object_new (THUNAR_UCA_TYPE_EDITOR, NULL);
+  g_object_get (gtk_settings_get_for_screen (gtk_widget_get_screen (GTK_WIDGET (uca_chooser))),
+                "gtk-dialogs-use-header", &use_header_bar, NULL);
+
+  editor = g_object_new (THUNAR_UCA_TYPE_EDITOR, "use-header-bar", use_header_bar, NULL);
   gtk_window_set_title (GTK_WINDOW (editor), edit ? _("Edit Action") : _("Create Action"));
   gtk_window_set_transient_for (GTK_WINDOW (editor), GTK_WINDOW (uca_chooser));
 
@@ -435,8 +368,8 @@ thunar_uca_chooser_delete_clicked (ThunarUcaChooser *uca_chooser)
                                        GTK_BUTTONS_NONE,
                                        _("Are you sure that you want to delete\naction \"%s\"?"), name);
       gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog), _("If you delete a custom action, it is permanently lost."));
-      gtk_dialog_add_buttons (GTK_DIALOG (dialog), GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                              GTK_STOCK_DELETE, GTK_RESPONSE_YES, NULL);
+      gtk_dialog_add_buttons (GTK_DIALOG (dialog), _("_Cancel"), GTK_RESPONSE_CANCEL,
+                              _("_Delete"), GTK_RESPONSE_YES, NULL);
       gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_YES);
       g_free (name);
       response = gtk_dialog_run (GTK_DIALOG (dialog));

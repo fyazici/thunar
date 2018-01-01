@@ -68,7 +68,7 @@ thunar_dialogs_show_rename_file (gpointer    parent,
   GtkWidget         *entry;
   GtkWidget         *label;
   GtkWidget         *image;
-  GtkWidget         *table;
+  GtkWidget         *grid;
   GtkWindow         *window;
   GdkPixbuf         *icon;
   GdkScreen         *screen;
@@ -94,9 +94,8 @@ thunar_dialogs_show_rename_file (gpointer    parent,
   dialog = gtk_dialog_new_with_buttons (title,
                                         window,
                                         GTK_DIALOG_MODAL
-                                        | GTK_DIALOG_NO_SEPARATOR
                                         | GTK_DIALOG_DESTROY_WITH_PARENT,
-                                        GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+                                        _("_Cancel"), GTK_RESPONSE_CANCEL,
                                         _("_Rename"), GTK_RESPONSE_OK,
                                         NULL);
   gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_OK);
@@ -106,9 +105,12 @@ thunar_dialogs_show_rename_file (gpointer    parent,
   if (G_UNLIKELY (window == NULL && screen != NULL))
     gtk_window_set_screen (GTK_WINDOW (dialog), screen);
 
-  table = g_object_new (GTK_TYPE_TABLE, "border-width", 6, "column-spacing", 6, "row-spacing", 3, NULL);
-  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), table, TRUE, TRUE, 0);
-  gtk_widget_show (table);
+  grid = gtk_grid_new ();
+  gtk_grid_set_column_spacing (GTK_GRID (grid), 6);
+  gtk_grid_set_row_spacing (GTK_GRID (grid), 3);
+  gtk_container_set_border_width (GTK_CONTAINER (grid), 6);
+  gtk_box_pack_start (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), grid, TRUE, TRUE, 0);
+  gtk_widget_show (grid);
 
   icon_theme = gtk_icon_theme_get_for_screen (gtk_widget_get_screen (dialog));
   icon_factory = thunar_icon_factory_get_for_icon_theme (icon_theme);
@@ -116,19 +118,25 @@ thunar_dialogs_show_rename_file (gpointer    parent,
   g_object_unref (G_OBJECT (icon_factory));
 
   image = gtk_image_new_from_pixbuf (icon);
-  gtk_misc_set_padding (GTK_MISC (image), 6, 6);
-  gtk_table_attach (GTK_TABLE (table), image, 0, 1, 0, 2, GTK_FILL, GTK_FILL, 0, 0);
+  gtk_widget_set_margin_start (GTK_WIDGET(image), 6);
+  gtk_widget_set_margin_end (GTK_WIDGET(image), 6);
+  gtk_widget_set_margin_top (GTK_WIDGET(image), 6);
+  gtk_widget_set_margin_bottom (GTK_WIDGET(image), 6);
+  gtk_grid_attach (GTK_GRID (grid), image, 0, 0, 1, 2);
   g_object_unref (G_OBJECT (icon));
   gtk_widget_show (image);
 
   label = gtk_label_new (_("Enter the new name:"));
-  gtk_misc_set_alignment (GTK_MISC (label), 0.0f, 0.5f);
-  gtk_table_attach (GTK_TABLE (table), label, 1, 2, 0, 1, GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
+  gtk_label_set_xalign (GTK_LABEL (label), 0.0f);
+  gtk_widget_set_hexpand (label, TRUE);
+  gtk_grid_attach (GTK_GRID (grid), label, 1, 0, 1, 1);
   gtk_widget_show (label);
 
   entry = gtk_entry_new ();
   gtk_entry_set_activates_default (GTK_ENTRY (entry), TRUE);
-  gtk_table_attach (GTK_TABLE (table), entry, 1, 2, 1, 2, GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
+  gtk_widget_set_hexpand (entry, TRUE);
+  gtk_widget_set_valign (entry, GTK_ALIGN_CENTER);
+  gtk_grid_attach (GTK_GRID (grid), entry, 1, 1, 1, 1);
   gtk_widget_show (entry);
 
   /* setup the old filename */
@@ -176,7 +184,7 @@ thunar_dialogs_show_rename_file (gpointer    parent,
     {
       /* hide the dialog */
       gtk_widget_hide (dialog);
-      
+
       /* determine the new filename */
       text = gtk_entry_get_text (GTK_ENTRY (entry));
 
@@ -224,7 +232,7 @@ thunar_dialogs_show_about (GtkWindow   *parent,
     "Nick Schermer <nick@xfce.org>",
     NULL,
   };
-  
+
   static const gchar *documenters[] =
   {
     "Benedikt Meurer <benny@xfce.org>",
@@ -244,7 +252,6 @@ thunar_dialogs_show_about (GtkWindow   *parent,
   comments = g_strdup_vprintf (format, args);
   va_end (args);
 
-  
   /* try to load the about logo */
   logo = gdk_pixbuf_new_from_file (DATADIR "/pixmaps/Thunar/Thunar-about-logo.png", NULL);
 
@@ -304,7 +311,7 @@ thunar_dialogs_show_error (gpointer      parent,
   _thunar_return_if_fail (parent == NULL || GDK_IS_SCREEN (parent) || GTK_IS_WIDGET (parent));
 
   /* do not display error dialog for already handled errors */
-  if (error->code == G_IO_ERROR_FAILED_HANDLED)
+  if (error && error->code == G_IO_ERROR_FAILED_HANDLED)
     return;
 
   /* parse the parent pointer */
@@ -515,7 +522,7 @@ thunar_dialogs_show_job_ask_replace (GtkWindow  *parent,
   ThunarDateStyle    date_style;
   GtkIconTheme      *icon_theme;
   GtkWidget         *dialog;
-  GtkWidget         *table;
+  GtkWidget         *grid;
   GtkWidget         *image;
   GtkWidget         *label;
   GdkPixbuf         *icon;
@@ -539,9 +546,8 @@ thunar_dialogs_show_job_ask_replace (GtkWindow  *parent,
   dialog = gtk_dialog_new_with_buttons (_("Confirm to replace files"),
                                         parent,
                                         GTK_DIALOG_MODAL
-                                        | GTK_DIALOG_NO_SEPARATOR
                                         | GTK_DIALOG_DESTROY_WITH_PARENT,
-                                        GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+                                        _("_Cancel"), GTK_RESPONSE_CANCEL,
                                         _("S_kip All"), THUNAR_JOB_RESPONSE_NO_ALL,
                                         _("_Skip"), THUNAR_JOB_RESPONSE_NO,
                                         _("Replace _All"), THUNAR_JOB_RESPONSE_YES_ALL,
@@ -560,25 +566,27 @@ thunar_dialogs_show_job_ask_replace (GtkWindow  *parent,
   icon_theme = gtk_icon_theme_get_for_screen (gtk_widget_get_screen (dialog));
   icon_factory = thunar_icon_factory_get_for_icon_theme (icon_theme);
 
-  table = g_object_new (GTK_TYPE_TABLE,
-                        "border-width", 10,
-                        "n-columns", 3,
-                        "n-rows", 5,
-                        "row-spacing", 6,
-                        "column-spacing", 5,
-                        NULL);
-  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), table, TRUE, TRUE, 0);
-  gtk_widget_show (table);
+  grid = gtk_grid_new ();
+  gtk_grid_set_column_spacing (GTK_GRID (grid), 5);
+  gtk_grid_set_row_spacing (GTK_GRID (grid), 6);
+  gtk_container_set_border_width (GTK_CONTAINER (grid), 10);
+  gtk_box_pack_start (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), grid, TRUE, TRUE, 0);
+  gtk_widget_show (grid);
 
   image = gtk_image_new_from_icon_name ("stock_folder-copy", GTK_ICON_SIZE_BUTTON);
-  gtk_misc_set_alignment (GTK_MISC (image), 0.5f, 0.0f);
-  gtk_misc_set_padding (GTK_MISC (image), 6, 6);
-  gtk_table_attach (GTK_TABLE (table), image, 0, 1, 0, 1, GTK_FILL, GTK_EXPAND | GTK_FILL, 0, 0);
+  gtk_widget_set_halign (image, GTK_ALIGN_CENTER);
+  gtk_widget_set_valign (image, GTK_ALIGN_START);
+  gtk_widget_set_margin_start (GTK_WIDGET(image), 6);
+  gtk_widget_set_margin_end (GTK_WIDGET(image), 6);
+  gtk_widget_set_margin_top (GTK_WIDGET(image), 6);
+  gtk_widget_set_margin_bottom (GTK_WIDGET(image), 6);
+  gtk_widget_set_vexpand (image, TRUE);
+  gtk_grid_attach (GTK_GRID (grid), image, 0, 0, 1, 1);
   gtk_widget_show (image);
 
   if (thunar_file_is_symlink (dst_file))
     {
-      text = g_strdup_printf (_("This folder already contains a symbolic link \"%s\"."), 
+      text = g_strdup_printf (_("This folder already contains a symbolic link \"%s\"."),
                               thunar_file_get_display_name (dst_file));
     }
   else if (thunar_file_is_directory (dst_file))
@@ -587,15 +595,16 @@ thunar_dialogs_show_job_ask_replace (GtkWindow  *parent,
                               thunar_file_get_display_name (dst_file));
     }
   else
-    { 
-      text = g_strdup_printf (_("This folder already contains a file \"%s\"."), 
+    {
+      text = g_strdup_printf (_("This folder already contains a file \"%s\"."),
                               thunar_file_get_display_name (dst_file));
     }
 
   label = gtk_label_new (text);
-  gtk_misc_set_alignment (GTK_MISC (label), 0.0f, 0.5f);
+  gtk_label_set_xalign (GTK_LABEL (label), 0.0f);
   gtk_label_set_attributes (GTK_LABEL (label), thunar_pango_attr_list_big ());
-  gtk_table_attach (GTK_TABLE (table), label, 1, 3, 0, 1, GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
+  gtk_widget_set_hexpand (label, TRUE);
+  gtk_grid_attach (GTK_GRID (grid), label, 1, 0, 2, 1);
   gtk_widget_show (label);
   g_free (text);
 
@@ -607,15 +616,19 @@ thunar_dialogs_show_job_ask_replace (GtkWindow  *parent,
     text = g_strdup_printf (Q_("ReplaceDialogPart1|Do you want to replace the existing file"));
 
   label = gtk_label_new (text);
-  gtk_misc_set_alignment (GTK_MISC (label), 0.0f, 0.5f);
-  gtk_table_attach (GTK_TABLE (table), label, 1, 3, 1, 2, GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
+  gtk_label_set_xalign (GTK_LABEL (label), 0.0f);
+  gtk_widget_set_hexpand (label, TRUE);
+  gtk_grid_attach (GTK_GRID (grid), label, 1, 1, 2, 1);
   gtk_widget_show (label);
   g_free (text);
 
   icon = thunar_icon_factory_load_file_icon (icon_factory, dst_file, THUNAR_FILE_ICON_STATE_DEFAULT, 48);
   image = gtk_image_new_from_pixbuf (icon);
-  gtk_misc_set_padding (GTK_MISC (image), 6, 6);
-  gtk_table_attach (GTK_TABLE (table), image, 1, 2, 2, 3, GTK_FILL, GTK_FILL, 0, 0);
+  gtk_widget_set_margin_start (GTK_WIDGET(image), 6);
+  gtk_widget_set_margin_end (GTK_WIDGET(image), 6);
+  gtk_widget_set_margin_top (GTK_WIDGET(image), 6);
+  gtk_widget_set_margin_bottom (GTK_WIDGET(image), 6);
+  gtk_grid_attach (GTK_GRID (grid), image, 1, 2, 1, 1);
   g_object_unref (G_OBJECT (icon));
   gtk_widget_show (image);
 
@@ -623,8 +636,9 @@ thunar_dialogs_show_job_ask_replace (GtkWindow  *parent,
   date_string = thunar_file_get_date_string (dst_file, THUNAR_FILE_DATE_MODIFIED, date_style);
   text = g_strdup_printf ("%s %s\n%s %s", _("Size:"), size_string, _("Modified:"), date_string);
   label = gtk_label_new (text);
-  gtk_misc_set_alignment (GTK_MISC (label), 0.0f, 0.5f);
-  gtk_table_attach (GTK_TABLE (table), label, 2, 3, 2, 3, GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
+  gtk_label_set_xalign (GTK_LABEL (label), 0.0f);
+  gtk_widget_set_hexpand (label, TRUE);
+  gtk_grid_attach (GTK_GRID (grid), label, 2, 2, 1, 1);
   gtk_widget_show (label);
   g_free (size_string);
   g_free (date_string);
@@ -638,15 +652,19 @@ thunar_dialogs_show_job_ask_replace (GtkWindow  *parent,
     text = g_strdup_printf (Q_("ReplaceDialogPart2|with the following file?"));
 
   label = gtk_label_new (text);
-  gtk_misc_set_alignment (GTK_MISC (label), 0.0f, 0.5f);
-  gtk_table_attach (GTK_TABLE (table), label, 1, 3, 3, 4, GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
+  gtk_label_set_xalign (GTK_LABEL (label), 0.0f);
+  gtk_widget_set_hexpand (label, TRUE);
+  gtk_grid_attach (GTK_GRID (grid), label, 1, 3, 2, 1);
   gtk_widget_show (label);
   g_free (text);
 
   icon = thunar_icon_factory_load_file_icon (icon_factory, src_file, THUNAR_FILE_ICON_STATE_DEFAULT, 48);
   image = gtk_image_new_from_pixbuf (icon);
-  gtk_misc_set_padding (GTK_MISC (image), 6, 6);
-  gtk_table_attach (GTK_TABLE (table), image, 1, 2, 4, 5, GTK_FILL, GTK_FILL, 0, 0);
+  gtk_widget_set_margin_start (GTK_WIDGET(image), 6);
+  gtk_widget_set_margin_end (GTK_WIDGET(image), 6);
+  gtk_widget_set_margin_top (GTK_WIDGET(image), 6);
+  gtk_widget_set_margin_bottom (GTK_WIDGET(image), 6);
+  gtk_grid_attach (GTK_GRID (grid), image, 1, 4, 1, 1);
   g_object_unref (G_OBJECT (icon));
   gtk_widget_show (image);
 
@@ -654,8 +672,9 @@ thunar_dialogs_show_job_ask_replace (GtkWindow  *parent,
   date_string = thunar_file_get_date_string (src_file, THUNAR_FILE_DATE_MODIFIED, date_style);
   text = g_strdup_printf ("%s %s\n%s %s", _("Size:"), size_string, _("Modified:"), date_string);
   label = gtk_label_new (text);
-  gtk_misc_set_alignment (GTK_MISC (label), 0.0f, 0.5f);
-  gtk_table_attach (GTK_TABLE (table), label, 2, 3, 4, 5, GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
+  gtk_label_set_xalign (GTK_LABEL (label), 0.0f);
+  gtk_widget_set_hexpand (label, TRUE);
+  gtk_grid_attach (GTK_GRID (grid), label, 2, 4, 1, 1);
   gtk_widget_show (label);
   g_free (size_string);
   g_free (date_string);
@@ -728,7 +747,7 @@ thunar_dialogs_show_job_error (GtkWindow *parent,
                                     "%s", primary->str);
   if (G_LIKELY (*secondary->str != '\0'))
     gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (message), "%s", secondary->str);
-  gtk_dialog_add_button (GTK_DIALOG (message), GTK_STOCK_CLOSE, GTK_RESPONSE_CANCEL);
+  gtk_dialog_add_button (GTK_DIALOG (message), _("_Close"), GTK_RESPONSE_CANCEL);
   gtk_dialog_run (GTK_DIALOG (message));
   gtk_widget_destroy (message);
 
@@ -783,7 +802,7 @@ thunar_dialogs_show_insecure_program (gpointer     parent,
   gtk_dialog_add_button (GTK_DIALOG (dialog), _("_Launch Anyway"), GTK_RESPONSE_OK);
   if (thunar_file_is_chmodable (file))
     gtk_dialog_add_button (GTK_DIALOG (dialog), _("Mark _Executable"), GTK_RESPONSE_APPLY);
-  gtk_dialog_add_button (GTK_DIALOG (dialog), GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
+  gtk_dialog_add_button (GTK_DIALOG (dialog), _("_Cancel"), GTK_RESPONSE_CANCEL);
   gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_CANCEL);
   if (screen != NULL && window == NULL)
     gtk_window_set_screen (GTK_WINDOW (dialog), screen);

@@ -56,11 +56,13 @@ static const struct
   { N_ ("Shutter Speed:"),     EXIF_TAG_SHUTTER_SPEED_VALUE, },
   { N_ ("ISO Speed Ratings:"), EXIF_TAG_ISO_SPEED_RATINGS,   },
   { N_ ("Software:"),          EXIF_TAG_SOFTWARE,            },
+  { N_ ("Description:"),       EXIF_TAG_IMAGE_DESCRIPTION,   },
+  { N_ ("Comment:"),           EXIF_TAG_USER_COMMENT,        },
 };
 #endif
 
 
-  
+
 struct _ThunarAprImagePageClass
 {
   ThunarAprAbstractPageClass __parent__;
@@ -95,7 +97,7 @@ thunar_apr_image_page_class_init (ThunarAprImagePageClass *klass)
 }
 
 
-  
+
 static void
 thunar_apr_image_page_init (ThunarAprImagePage *image_page)
 {
@@ -105,7 +107,8 @@ thunar_apr_image_page_init (ThunarAprImagePage *image_page)
   AtkRelation    *relation;
   AtkObject      *object;
   GtkWidget      *label;
-  GtkWidget      *table;
+  GtkWidget      *grid;
+  GtkWidget      *spacer;
 #ifdef HAVE_EXIF
   guint           n;
 #endif
@@ -120,23 +123,24 @@ thunar_apr_image_page_init (ThunarAprImagePage *image_page)
   attribute->end_index = -1;
   pango_attr_list_insert (attr_list, attribute);
 
-  table = gtk_table_new (3, 2, FALSE);
-  gtk_table_set_col_spacings (GTK_TABLE (table), 12);
-  gtk_table_set_row_spacings (GTK_TABLE (table), 0);
-  gtk_container_add (GTK_CONTAINER (image_page), table);
-  gtk_widget_show (table);
+  grid = gtk_grid_new ();
+  gtk_grid_set_column_spacing (GTK_GRID (grid), 12);
+  gtk_grid_set_row_spacing (GTK_GRID (grid), 6);
+  gtk_container_add (GTK_CONTAINER (image_page), grid);
+  gtk_widget_show (grid);
 
   label = gtk_label_new (_("Image Type:"));
-  gtk_misc_set_alignment (GTK_MISC (label), 1.0f, 0.5f);
+  gtk_label_set_xalign (GTK_LABEL (label), 1.0f);
   gtk_label_set_attributes (GTK_LABEL (label), attr_list);
-  gtk_table_attach (GTK_TABLE (table), label, 0, 1, 0, 1, GTK_FILL, GTK_FILL, 0, 3);
+  gtk_grid_attach (GTK_GRID (grid), label, 0, 0, 1, 1);
   gtk_widget_show (label);
 
   image_page->type_label = gtk_label_new ("");
   gtk_label_set_selectable (GTK_LABEL (image_page->type_label), TRUE);
-  gtk_misc_set_alignment (GTK_MISC (image_page->type_label), 0.0f, 0.5f);
+  gtk_label_set_xalign (GTK_LABEL (image_page->type_label), 0.0f);
   gtk_label_set_ellipsize (GTK_LABEL (image_page->type_label), PANGO_ELLIPSIZE_END);
-  gtk_table_attach (GTK_TABLE (table), image_page->type_label, 1, 2, 0, 1, GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 3);
+  gtk_widget_set_hexpand (image_page->type_label, TRUE);
+  gtk_grid_attach (GTK_GRID (grid), image_page->type_label, 1, 0, 1, 1);
   gtk_widget_show (image_page->type_label);
 
   /* set Atk label relation for the label */
@@ -147,16 +151,17 @@ thunar_apr_image_page_init (ThunarAprImagePage *image_page)
   g_object_unref (G_OBJECT (relation));
 
   label = gtk_label_new (_("Image Size:"));
-  gtk_misc_set_alignment (GTK_MISC (label), 1.0f, 0.5f);
+  gtk_label_set_xalign (GTK_LABEL (label), 1.0f);
   gtk_label_set_attributes (GTK_LABEL (label), attr_list);
-  gtk_table_attach (GTK_TABLE (table), label, 0, 1, 1, 2, GTK_FILL, GTK_FILL, 0, 3);
+  gtk_grid_attach (GTK_GRID (grid), label, 0, 1, 1, 1);
   gtk_widget_show (label);
 
   image_page->dimensions_label = gtk_label_new ("");
   gtk_label_set_selectable (GTK_LABEL (image_page->dimensions_label), TRUE);
-  gtk_misc_set_alignment (GTK_MISC (image_page->dimensions_label), 0.0f, 0.5f);
+  gtk_label_set_xalign (GTK_LABEL (image_page->dimensions_label), 0.0f);
   gtk_label_set_ellipsize (GTK_LABEL (image_page->dimensions_label), PANGO_ELLIPSIZE_END);
-  gtk_table_attach (GTK_TABLE (table), image_page->dimensions_label, 1, 2, 1, 2, GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 3);
+  gtk_widget_set_hexpand (image_page->dimensions_label, TRUE);
+  gtk_grid_attach (GTK_GRID (grid), image_page->dimensions_label, 1, 1, 1, 1);
   gtk_widget_show (image_page->dimensions_label);
 
   /* set Atk label relation for the label */
@@ -168,22 +173,25 @@ thunar_apr_image_page_init (ThunarAprImagePage *image_page)
 
 #ifdef HAVE_EXIF
   /* some spacing between the General info and the Exif info */
-  gtk_table_set_row_spacing (GTK_TABLE (table), 2, 6);
+  spacer = g_object_new (GTK_TYPE_BOX, "orientation", GTK_ORIENTATION_VERTICAL, "height-request", 6, NULL);
+  gtk_grid_attach (GTK_GRID (grid), spacer, 0, 2, 2, 1);
+  gtk_widget_show (spacer);
 
   /* add labels for the Exif info */
   for (n = 0; n < G_N_ELEMENTS (TAIP_EXIF); ++n)
     {
       label = gtk_label_new (_(TAIP_EXIF[n].name));
-      gtk_misc_set_alignment (GTK_MISC (label), 1.0f, 0.5f);
+      gtk_label_set_xalign (GTK_LABEL (label), 1.0f);
       gtk_label_set_attributes (GTK_LABEL (label), attr_list);
-      gtk_table_attach (GTK_TABLE (table), label, 0, 1, n + 3, n + 4, GTK_FILL, GTK_FILL, 0, 3);
+      gtk_grid_attach (GTK_GRID (grid), label, 0, n + 3, 1, 1);
       gtk_widget_show (label);
 
       image_page->exif_labels[n] = gtk_label_new ("");
       gtk_label_set_selectable (GTK_LABEL (image_page->exif_labels[n]), TRUE);
-      gtk_misc_set_alignment (GTK_MISC (image_page->exif_labels[n]), 0.0f, 0.5f);
+      gtk_label_set_xalign (GTK_LABEL (image_page->exif_labels[n]), 0.0f);
       gtk_label_set_ellipsize (GTK_LABEL (image_page->exif_labels[n]), PANGO_ELLIPSIZE_END);
-      gtk_table_attach (GTK_TABLE (table), image_page->exif_labels[n], 1, 2, n + 3, n + 4, GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 3);
+      gtk_widget_set_hexpand (image_page->exif_labels[n], TRUE);
+      gtk_grid_attach (GTK_GRID (grid), image_page->exif_labels[n], 1, n + 3, 1, 1);
       gtk_widget_show (image_page->exif_labels[n]);
 
       exo_binding_new (G_OBJECT (image_page->exif_labels[n]), "visible", G_OBJECT (label), "visible");

@@ -33,7 +33,6 @@
 #include <thunar/thunar-gtk-extensions.h>
 #include <thunar/thunar-location-button.h>
 #include <thunar/thunar-location-buttons.h>
-#include <thunar/thunar-location-buttons-ui.h>
 #include <thunar/thunar-private.h>
 #include <thunar/thunar-properties-dialog.h>
 
@@ -48,95 +47,105 @@ enum
 {
   PROP_0,
   PROP_CURRENT_DIRECTORY,
-  PROP_SELECTED_FILES,
-  PROP_UI_MANAGER,
 };
 
 
 
-static void           thunar_location_buttons_component_init            (ThunarComponentIface       *iface);
-static void           thunar_location_buttons_navigator_init            (ThunarNavigatorIface       *iface);
-static void           thunar_location_buttons_location_bar_init         (ThunarLocationBarIface     *iface);
-static void           thunar_location_buttons_finalize                  (GObject                    *object);
-static void           thunar_location_buttons_get_property              (GObject                    *object,
-                                                                         guint                       prop_id,
-                                                                         GValue                     *value,
-                                                                         GParamSpec                 *pspec);
-static void           thunar_location_buttons_set_property              (GObject                    *object,
-                                                                         guint                       prop_id,
-                                                                         const GValue               *value,
-                                                                         GParamSpec                 *pspec);
-static GtkUIManager  *thunar_location_buttons_get_ui_manager            (ThunarComponent            *component);
-static void           thunar_location_buttons_set_ui_manager            (ThunarComponent            *component,
-                                                                         GtkUIManager               *ui_manager);
-static ThunarFile    *thunar_location_buttons_get_current_directory     (ThunarNavigator            *navigator);
-static void           thunar_location_buttons_set_current_directory     (ThunarNavigator            *navigator,
-                                                                         ThunarFile                 *current_directory);
-static void           thunar_location_buttons_unmap                     (GtkWidget                  *widget);
-static void           thunar_location_buttons_size_request              (GtkWidget                  *widget,
-                                                                         GtkRequisition             *requisition);
-static void           thunar_location_buttons_size_allocate             (GtkWidget                  *widget,
-                                                                         GtkAllocation              *allocation);
-static void           thunar_location_buttons_state_changed             (GtkWidget                  *widget,
-                                                                         GtkStateType                previous_state);
-static void           thunar_location_buttons_grab_notify               (GtkWidget                  *widget,
-                                                                         gboolean                    was_grabbed);
-static void           thunar_location_buttons_add                       (GtkContainer               *container,
-                                                                         GtkWidget                  *widget);
-static void           thunar_location_buttons_remove                    (GtkContainer               *container,
-                                                                         GtkWidget                  *widget);
-static void           thunar_location_buttons_forall                    (GtkContainer               *container,
-                                                                         gboolean                    include_internals,
-                                                                         GtkCallback                 callback,
-                                                                         gpointer                    callback_data);
-static GtkWidget     *thunar_location_buttons_make_button               (ThunarLocationButtons      *buttons,
-                                                                         ThunarFile                 *file);
-static void           thunar_location_buttons_remove_1                  (GtkContainer               *container,
-                                                                         GtkWidget                  *widget);
-static gboolean       thunar_location_buttons_scroll_timeout            (gpointer                    user_data);
-static void           thunar_location_buttons_scroll_timeout_destroy    (gpointer                    user_data);
-static void           thunar_location_buttons_stop_scrolling            (ThunarLocationButtons      *buttons);
-static void           thunar_location_buttons_update_sliders            (ThunarLocationButtons      *buttons);
-static gboolean       thunar_location_buttons_slider_button_press       (GtkWidget                  *button,
-                                                                         GdkEventButton             *event,
-                                                                         ThunarLocationButtons      *buttons);
-static gboolean       thunar_location_buttons_slider_button_release     (GtkWidget                  *button,
-                                                                         GdkEventButton             *event,
-                                                                         ThunarLocationButtons      *buttons);
-static void           thunar_location_buttons_scroll_left               (GtkWidget                  *button,
-                                                                         ThunarLocationButtons      *buttons);
-static void           thunar_location_buttons_scroll_right              (GtkWidget                  *button,
-                                                                         ThunarLocationButtons      *buttons);
-static void           thunar_location_buttons_clicked                   (ThunarLocationButton       *button,
-                                                                         gboolean                    open_in_tab,
-                                                                         ThunarLocationButtons      *buttons);
-static void           thunar_location_buttons_context_menu              (ThunarLocationButton       *button,
-                                                                         GdkEventButton             *event,
-                                                                         ThunarLocationButtons      *buttons);
-static void           thunar_location_buttons_gone                      (ThunarLocationButton       *button,
-                                                                         ThunarLocationButtons      *buttons);
-static void           thunar_location_buttons_action_create_folder      (GtkAction                  *action,
-                                                                         ThunarLocationButtons      *buttons);
-static void           thunar_location_buttons_action_down_folder        (GtkAction                  *action,
-                                                                         ThunarLocationButtons      *buttons);
-static void           thunar_location_buttons_action_empty_trash        (GtkAction                  *action,
-                                                                         ThunarLocationButtons      *buttons);
-static void           thunar_location_buttons_action_open               (GtkAction                  *action,
-                                                                         ThunarLocationButtons      *buttons);
-static void           thunar_location_buttons_action_open_in_new_tab    (GtkAction                  *action,
-                                                                         ThunarLocationButtons      *buttons);
-static void           thunar_location_buttons_action_open_in_new_window (GtkAction                  *action,
-                                                                         ThunarLocationButtons      *buttons);
-static void           thunar_location_buttons_action_paste_into_folder  (GtkAction                  *action,
-                                                                         ThunarLocationButtons      *buttons);
-static void           thunar_location_buttons_action_properties         (GtkAction                  *action,
-                                                                         ThunarLocationButtons      *buttons);
+static void           thunar_location_buttons_navigator_init              (ThunarNavigatorIface       *iface);
+static void           thunar_location_buttons_finalize                    (GObject                    *object);
+static void           thunar_location_buttons_get_property                (GObject                    *object,
+                                                                           guint                       prop_id,
+                                                                           GValue                     *value,
+                                                                           GParamSpec                 *pspec);
+static void           thunar_location_buttons_set_property                (GObject                    *object,
+                                                                           guint                       prop_id,
+                                                                           const GValue               *value,
+                                                                           GParamSpec                 *pspec);
+static ThunarFile    *thunar_location_buttons_get_current_directory       (ThunarNavigator            *navigator);
+static void           thunar_location_buttons_set_current_directory       (ThunarNavigator            *navigator,
+                                                                           ThunarFile                 *current_directory);
+static void           thunar_location_buttons_unmap                       (GtkWidget                  *widget);
+static void           thunar_location_buttons_on_filler_clicked           (ThunarLocationButtons      *buttons);
+static void           thunar_location_buttons_get_preferred_width         (GtkWidget                  *widget,
+                                                                           gint                       *minimum,
+                                                                           gint                       *natural);
+static void           thunar_location_buttons_get_preferred_height        (GtkWidget                  *widget,
+                                                                           gint                       *minimum,
+                                                                           gint                       *natural);
+static GtkWidgetPath *thunar_location_buttons_get_path_for_child          (GtkContainer               *container,
+                                                                           GtkWidget                  *child);
+static void           thunar_location_buttons_child_ordering_changed      (ThunarLocationButtons      *buttons);
+static GList         *thunar_location_buttons_detect_first_visible_button (ThunarLocationButtons      *buttons,
+                                                                           gint                        available_width,
+                                                                           gint                       *resulting_occupied_width);
+static GList         *thunar_location_buttons_detect_last_visible_button  (ThunarLocationButtons      *buttons,
+                                                                           gint                        available_width,
+                                                                           gint                       *resulting_occupied_width);
+static void           thunar_location_buttons_size_allocate               (GtkWidget                  *widget,
+                                                                           GtkAllocation              *allocation);
+static void           thunar_location_buttons_state_changed               (GtkWidget                  *widget,
+                                                                           GtkStateType                previous_state);
+static void           thunar_location_buttons_grab_notify                 (GtkWidget                  *widget,
+                                                                           gboolean                    was_grabbed);
+static void           thunar_location_buttons_add                         (GtkContainer               *container,
+                                                                           GtkWidget                  *widget);
+static void           thunar_location_buttons_remove                      (GtkContainer               *container,
+                                                                           GtkWidget                  *widget);
+static void           thunar_location_buttons_forall                      (GtkContainer               *container,
+                                                                           gboolean                    include_internals,
+                                                                           GtkCallback                 callback,
+                                                                           gpointer                    callback_data);
+static GtkWidget     *thunar_location_buttons_make_button                 (ThunarLocationButtons      *buttons,
+                                                                           ThunarFile                 *file);
+static void           thunar_location_buttons_remove_1                    (GtkContainer               *container,
+                                                                           GtkWidget                  *widget);
+static gboolean       thunar_location_buttons_draw                        (GtkWidget                  *buttons,
+                                                                           cairo_t                    *cr);
+static gboolean       thunar_location_buttons_scroll_timeout              (gpointer                    user_data);
+static void           thunar_location_buttons_scroll_timeout_destroy      (gpointer                    user_data);
+static void           thunar_location_buttons_stop_scrolling              (ThunarLocationButtons      *buttons);
+static void           thunar_location_buttons_update_sliders              (ThunarLocationButtons      *buttons);
+static gboolean       thunar_location_buttons_slider_button_press         (GtkWidget                  *button,
+                                                                           GdkEventButton             *event,
+                                                                           ThunarLocationButtons      *buttons);
+static gboolean       thunar_location_buttons_slider_button_release       (GtkWidget                  *button,
+                                                                           GdkEventButton             *event,
+                                                                           ThunarLocationButtons      *buttons);
+static void           thunar_location_buttons_scroll_left                 (GtkWidget                  *button,
+                                                                           ThunarLocationButtons      *buttons);
+static void           thunar_location_buttons_scroll_right                (GtkWidget                  *button,
+                                                                           ThunarLocationButtons      *buttons);
+static void           thunar_location_buttons_clicked                     (ThunarLocationButton       *button,
+                                                                           gboolean                    open_in_tab,
+                                                                           ThunarLocationButtons      *buttons);
+static gboolean       thunar_location_buttons_context_menu                (ThunarLocationButton       *button,
+                                                                           ThunarLocationButtons      *buttons);
+static void           thunar_location_buttons_gone                        (ThunarLocationButton       *button,
+                                                                           ThunarLocationButtons      *buttons);
+static void           thunar_location_buttons_action_create_folder        (GtkAction                  *action,
+                                                                           ThunarLocationButtons      *buttons);
+static void           thunar_location_buttons_action_down_folder          (GtkAction                  *action,
+                                                                           ThunarLocationButtons      *buttons);
+static void           thunar_location_buttons_action_empty_trash          (GtkAction                  *action,
+                                                                           ThunarLocationButtons      *buttons);
+static void           thunar_location_buttons_action_open                 (GtkAction                  *action,
+                                                                           ThunarLocationButtons      *buttons);
+static void           thunar_location_buttons_action_open_in_new_tab      (GtkAction                  *action,
+                                                                           ThunarLocationButtons      *buttons);
+static void           thunar_location_buttons_action_open_in_new_window   (GtkAction                  *action,
+                                                                           ThunarLocationButtons      *buttons);
+static void           thunar_location_buttons_action_paste_into_folder    (GtkAction                  *action,
+                                                                           ThunarLocationButtons      *buttons);
+static void           thunar_location_buttons_action_properties           (GtkAction                  *action,
+                                                                           ThunarLocationButtons      *buttons);
 
 
 
 struct _ThunarLocationButtonsClass
 {
   GtkContainerClass __parent__;
+
+  void (*entry_requested)(const gchar *initial_text);
 };
 
 struct _ThunarLocationButtons
@@ -144,11 +153,10 @@ struct _ThunarLocationButtons
   GtkContainer __parent__;
 
   GtkActionGroup    *action_group;
-  GtkUIManager      *ui_manager;
-  guint              ui_merge_id;
 
   GtkWidget         *left_slider;
   GtkWidget         *right_slider;
+  GtkWidget         *filler_widget;
 
   ThunarFile        *current_directory;
 
@@ -157,7 +165,8 @@ struct _ThunarLocationButtons
 
   GList             *list;
   GList             *fake_root_button;
-  GList             *first_scrolled_button;
+  GList             *first_visible_button;
+  GList             *last_visible_button;
 
   guint              scroll_timeout_id;
 };
@@ -172,21 +181,19 @@ static const GtkActionEntry action_entries[] =
 {
   { "location-buttons-down-folder", NULL, "Down Folder", "<alt>Down", NULL, G_CALLBACK (thunar_location_buttons_action_down_folder), },
   { "location-buttons-context-menu", NULL, "Context Menu", NULL, "", NULL, },
-  { "location-buttons-open", GTK_STOCK_OPEN, N_("_Open"), "", NULL, G_CALLBACK (thunar_location_buttons_action_open), },
+  { "location-buttons-open", "document-open", N_("_Open"), "", NULL, G_CALLBACK (thunar_location_buttons_action_open), },
   { "location-buttons-open-in-new-tab", NULL, N_("Open in New Tab"), "", NULL, G_CALLBACK (thunar_location_buttons_action_open_in_new_tab), },
   { "location-buttons-open-in-new-window", NULL, N_("Open in New Window"), "", NULL, G_CALLBACK (thunar_location_buttons_action_open_in_new_window), },
   { "location-buttons-create-folder", "folder-new", N_("Create _Folder..."), "", NULL, G_CALLBACK (thunar_location_buttons_action_create_folder), },
   { "location-buttons-empty-trash", NULL, N_("_Empty Trash"), "", N_("Delete all files and folders in the Trash"), G_CALLBACK (thunar_location_buttons_action_empty_trash), },
-  { "location-buttons-paste-into-folder", GTK_STOCK_PASTE, N_("Paste Into Folder"), "", NULL, G_CALLBACK (thunar_location_buttons_action_paste_into_folder), },
-  { "location-buttons-properties", GTK_STOCK_PROPERTIES, N_("_Properties..."), "", NULL, G_CALLBACK (thunar_location_buttons_action_properties), },
+  { "location-buttons-paste-into-folder", "edit-paste", N_("Paste Into Folder"), "", NULL, G_CALLBACK (thunar_location_buttons_action_paste_into_folder), },
+  { "location-buttons-properties", "document-properties", N_("_Properties..."), "", NULL, G_CALLBACK (thunar_location_buttons_action_properties), },
 };
 
 
 
 G_DEFINE_TYPE_WITH_CODE (ThunarLocationButtons, thunar_location_buttons, GTK_TYPE_CONTAINER,
-    G_IMPLEMENT_INTERFACE (THUNAR_TYPE_NAVIGATOR, thunar_location_buttons_navigator_init)
-    G_IMPLEMENT_INTERFACE (THUNAR_TYPE_COMPONENT, thunar_location_buttons_component_init)
-    G_IMPLEMENT_INTERFACE (THUNAR_TYPE_LOCATION_BAR, thunar_location_buttons_location_bar_init))
+    G_IMPLEMENT_INTERFACE (THUNAR_TYPE_NAVIGATOR, thunar_location_buttons_navigator_init))
 
 
 
@@ -203,8 +210,10 @@ thunar_location_buttons_class_init (ThunarLocationButtonsClass *klass)
   gobject_class->set_property = thunar_location_buttons_set_property;
 
   gtkwidget_class = GTK_WIDGET_CLASS (klass);
+  gtkwidget_class->draw = thunar_location_buttons_draw;
   gtkwidget_class->unmap = thunar_location_buttons_unmap;
-  gtkwidget_class->size_request = thunar_location_buttons_size_request;
+  gtkwidget_class->get_preferred_width = thunar_location_buttons_get_preferred_width;
+  gtkwidget_class->get_preferred_height = thunar_location_buttons_get_preferred_height;
   gtkwidget_class->size_allocate = thunar_location_buttons_size_allocate;
   gtkwidget_class->state_changed = thunar_location_buttons_state_changed;
   gtkwidget_class->grab_notify = thunar_location_buttons_grab_notify;
@@ -213,40 +222,25 @@ thunar_location_buttons_class_init (ThunarLocationButtonsClass *klass)
   gtkcontainer_class->add = thunar_location_buttons_add;
   gtkcontainer_class->remove = thunar_location_buttons_remove;
   gtkcontainer_class->forall = thunar_location_buttons_forall;
+  gtkcontainer_class->get_path_for_child = thunar_location_buttons_get_path_for_child;
 
   /* Override ThunarNavigator's properties */
   g_object_class_override_property (gobject_class, PROP_CURRENT_DIRECTORY, "current-directory");
 
-  /* Override ThunarComponent's properties */
-  g_object_class_override_property (gobject_class, PROP_SELECTED_FILES, "selected-files");
-  g_object_class_override_property (gobject_class, PROP_UI_MANAGER, "ui-manager");
+  /* signals */
+  g_signal_new ("entry-requested",
+                G_TYPE_FROM_CLASS (klass),
+                G_SIGNAL_RUN_LAST,
+                G_STRUCT_OFFSET (ThunarLocationButtonsClass, entry_requested),
+                NULL, NULL,
+                NULL,
+                G_TYPE_NONE,
+                1,
+                G_TYPE_STRING);
 
-  /**
-   * ThunarLocationButtons:spacing:
-   *
-   * The amount of space between the path buttons.
-   **/
-  gtk_widget_class_install_style_property (gtkwidget_class,
-                                           g_param_spec_int ("spacing",
-                                                             _("Spacing"),
-                                                             _("The amount of space between the path buttons"),
-                                                             0, G_MAXINT, 3,
-                                                             G_PARAM_READABLE));
 
   thunar_file_quark = g_quark_from_static_string ("button-thunar-file");
 }
-
-
-
-static void
-thunar_location_buttons_component_init (ThunarComponentIface *iface)
-{
-  iface->get_selected_files = (gpointer) exo_noop_null;
-  iface->set_selected_files = (gpointer) exo_noop;
-  iface->get_ui_manager = thunar_location_buttons_get_ui_manager;
-  iface->set_ui_manager = thunar_location_buttons_set_ui_manager;
-}
-
 
 
 static void
@@ -259,10 +253,9 @@ thunar_location_buttons_navigator_init (ThunarNavigatorIface *iface)
 
 
 static void
-thunar_location_buttons_location_bar_init (ThunarLocationBarIface *iface)
+thunar_location_buttons_on_filler_clicked (ThunarLocationButtons *buttons)
 {
-  iface->accept_focus = (gpointer) exo_noop_false;
-  iface->is_standalone = (gpointer) exo_noop_true;
+  g_signal_emit_by_name (buttons, "entry-requested", NULL);
 }
 
 
@@ -270,10 +263,11 @@ thunar_location_buttons_location_bar_init (ThunarLocationBarIface *iface)
 static void
 thunar_location_buttons_init (ThunarLocationButtons *buttons)
 {
-  GtkWidget *arrow;
+  GtkWidget       *icon;
 
   /* setup the action group for the location buttons */
   buttons->action_group = gtk_action_group_new ("ThunarLocationButtons");
+  gtk_action_group_set_accel_group (buttons->action_group, gtk_accel_group_new ());
   gtk_action_group_set_translation_domain (buttons->action_group, GETTEXT_PACKAGE);
   gtk_action_group_add_actions (buttons->action_group, action_entries, G_N_ELEMENTS (action_entries), buttons);
 
@@ -287,9 +281,9 @@ thunar_location_buttons_init (ThunarLocationButtons *buttons)
   gtk_container_add (GTK_CONTAINER (buttons), buttons->left_slider);
   gtk_widget_show (buttons->left_slider);
 
-  arrow = gtk_arrow_new (GTK_ARROW_LEFT, GTK_SHADOW_OUT);
-  gtk_container_add (GTK_CONTAINER (buttons->left_slider), arrow);
-  gtk_widget_show (arrow);
+  icon = gtk_image_new_from_icon_name ("pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
+  gtk_container_add (GTK_CONTAINER (buttons->left_slider), icon);
+  gtk_widget_show (icon);
 
   buttons->right_slider = gtk_button_new ();
   g_signal_connect (G_OBJECT (buttons->right_slider), "button-press-event", G_CALLBACK (thunar_location_buttons_slider_button_press), buttons);
@@ -298,9 +292,36 @@ thunar_location_buttons_init (ThunarLocationButtons *buttons)
   gtk_container_add (GTK_CONTAINER (buttons), buttons->right_slider);
   gtk_widget_show (buttons->right_slider);
 
-  arrow = gtk_arrow_new (GTK_ARROW_RIGHT, GTK_SHADOW_OUT);
-  gtk_container_add (GTK_CONTAINER (buttons->right_slider), arrow);
-  gtk_widget_show (arrow);
+  icon = gtk_image_new_from_icon_name ("pan-end-symbolic", GTK_ICON_SIZE_BUTTON);
+  gtk_container_add (GTK_CONTAINER (buttons->right_slider), icon);
+  gtk_widget_show (icon);
+
+  buttons->filler_widget = gtk_button_new ();
+  g_signal_connect_swapped (buttons->filler_widget, "clicked", G_CALLBACK (thunar_location_buttons_on_filler_clicked), buttons);
+
+  icon = gtk_image_new_from_icon_name ("gtk-edit", GTK_ICON_SIZE_BUTTON);
+  gtk_widget_set_halign (icon, GTK_ALIGN_END);
+  gtk_container_add (GTK_CONTAINER (buttons->filler_widget), icon);
+  gtk_widget_show (icon);
+
+  gtk_container_add (GTK_CONTAINER (buttons), buttons->filler_widget);
+  gtk_widget_show (buttons->filler_widget);
+
+  g_object_set (buttons, "valign", GTK_ALIGN_CENTER, NULL);
+
+  /* setup style classes */
+  gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (buttons)),
+                               GTK_STYLE_CLASS_LINKED);
+  gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (buttons)),
+                               "path-bar");
+
+  /* add sub-buttons to css class which matches all buttons in the path-bar */
+  gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (buttons->left_slider)),
+                               "path-bar-button");
+  gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (buttons->right_slider)),
+                               "path-bar-button");
+  gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (buttons->filler_widget)),
+                               "path-bar-button");
 }
 
 
@@ -311,10 +332,6 @@ thunar_location_buttons_finalize (GObject *object)
   ThunarLocationButtons *buttons = THUNAR_LOCATION_BUTTONS (object);
 
   _thunar_return_if_fail (THUNAR_IS_LOCATION_BUTTONS (buttons));
-
-  /* disconnect from the selected files and the UI manager */
-  thunar_component_set_selected_files (THUNAR_COMPONENT (buttons), NULL);
-  thunar_component_set_ui_manager (THUNAR_COMPONENT (buttons), NULL);
 
   /* be sure to cancel the scrolling */
   thunar_location_buttons_stop_scrolling (buttons);
@@ -342,14 +359,6 @@ thunar_location_buttons_get_property (GObject    *object,
       g_value_set_object (value, thunar_navigator_get_current_directory (THUNAR_NAVIGATOR (object)));
       break;
 
-    case PROP_SELECTED_FILES:
-      g_value_set_boxed (value, thunar_component_get_selected_files (THUNAR_COMPONENT (object)));
-      break;
-
-    case PROP_UI_MANAGER:
-      g_value_set_object (value, thunar_component_get_ui_manager (THUNAR_COMPONENT (object)));
-      break;
-
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -370,14 +379,6 @@ thunar_location_buttons_set_property (GObject      *object,
       thunar_navigator_set_current_directory (THUNAR_NAVIGATOR (object), g_value_get_object (value));
       break;
 
-    case PROP_SELECTED_FILES:
-      thunar_component_set_selected_files (THUNAR_COMPONENT (object), g_value_get_boxed (value));
-      break;
-
-    case PROP_UI_MANAGER:
-      thunar_component_set_ui_manager (THUNAR_COMPONENT (object), g_value_get_object (value));
-      break;
-
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -386,65 +387,21 @@ thunar_location_buttons_set_property (GObject      *object,
 
 
 
-static GtkUIManager*
-thunar_location_buttons_get_ui_manager (ThunarComponent *component)
-{
-  return THUNAR_LOCATION_BUTTONS (component)->ui_manager;
-}
-
-
-
-static void
-thunar_location_buttons_set_ui_manager (ThunarComponent *component,
-                                        GtkUIManager    *ui_manager)
-{
-  ThunarLocationButtons *buttons = THUNAR_LOCATION_BUTTONS (component);
-  GError                *error = NULL;
-
-  /* disconnect from the previous ui manager */
-  if (G_UNLIKELY (buttons->ui_manager != NULL))
-    {
-      /* drop our action group from the previous UI manager */
-      gtk_ui_manager_remove_action_group (buttons->ui_manager, buttons->action_group);
-
-      /* unmerge our ui controls from the previous UI manager */
-      gtk_ui_manager_remove_ui (buttons->ui_manager, buttons->ui_merge_id);
-
-      /* drop our reference on the previous UI manager */
-      g_object_unref (G_OBJECT (buttons->ui_manager));
-    }
-
-  /* activate the new UI manager */
-  buttons->ui_manager = ui_manager;
-
-  /* connect to the new UI manager */
-  if (G_LIKELY (ui_manager != NULL))
-    {
-      /* we keep a reference on the new manager */
-      g_object_ref (G_OBJECT (ui_manager));
-
-      /* add our action group to the new manager */
-      gtk_ui_manager_insert_action_group (ui_manager, buttons->action_group, -1);
-
-      /* merge our UI control items with the new manager */
-      buttons->ui_merge_id = gtk_ui_manager_add_ui_from_string (ui_manager, thunar_location_buttons_ui, thunar_location_buttons_ui_length, &error);
-      if (G_UNLIKELY (buttons->ui_merge_id == 0))
-        {
-          g_error ("Failed to merge ThunarLocationButtons menus: %s", error->message);
-          g_error_free (error);
-        }
-    }
-
-  /* notify listeners */
-  g_object_notify (G_OBJECT (buttons), "ui-manager");
-}
-
-
-
 static ThunarFile*
 thunar_location_buttons_get_current_directory (ThunarNavigator *navigator)
 {
   return THUNAR_LOCATION_BUTTONS (navigator)->current_directory;
+}
+
+
+
+static inline gboolean
+eglible_for_fake_root (ThunarFile *file)
+{
+  /* use 'Home' as fake root button */
+  return thunar_file_is_home (file);
+
+  /* TODO: mounted devices */
 }
 
 
@@ -467,59 +424,53 @@ thunar_location_buttons_set_current_directory (ThunarNavigator *navigator,
 
   /* check if we already have a button for that directory */
   for (lp = buttons->list; lp != NULL; lp = lp->next)
-    if (thunar_location_button_get_file (lp->data) == current_directory)
-      break;
-
-  /* if we already have a button for that directory, just activate it */
-  if (G_UNLIKELY (lp != NULL))
     {
-      /* fake a "clicked" event for that button */
-      thunar_location_button_clicked (THUNAR_LOCATION_BUTTON (lp->data));
-    }
-  else
-    {
-      /* regenerate the button list */
-      if (G_LIKELY (buttons->current_directory != NULL))
+      if (thunar_location_button_get_file (lp->data) == current_directory)
         {
-          g_object_unref (G_OBJECT (buttons->current_directory));
-
-          /* remove all buttons */
-          while (buttons->list != NULL)
-            gtk_container_remove (GTK_CONTAINER (buttons), buttons->list->data);
-
-          /* clear the first scrolled and fake root buttons */
-          buttons->first_scrolled_button = NULL;
-          buttons->fake_root_button = NULL;
+          /* fake a "clicked" event for that button */
+          gtk_button_clicked (GTK_BUTTON (lp->data));
+          return;
         }
+    }
 
-      buttons->current_directory = current_directory;
+  if (G_LIKELY (buttons->current_directory != NULL))
+    {
+      /* remove all buttons */
+      g_object_unref (G_OBJECT (buttons->current_directory));
 
-      if (G_LIKELY (current_directory != NULL))
+      while (buttons->list != NULL)
+        gtk_container_remove (GTK_CONTAINER (buttons), buttons->list->data);
+
+      /* clear scroll positions and fake root button */
+      buttons->first_visible_button = NULL;
+      buttons->last_visible_button = NULL;
+      buttons->fake_root_button = NULL;
+    }
+
+  buttons->current_directory = current_directory;
+
+  /* regenerate the button list */
+  if (G_LIKELY (current_directory != NULL))
+    {
+      g_object_ref (G_OBJECT (current_directory));
+
+      /* add the new buttons */
+      for (file = current_directory; file != NULL; file = file_parent)
         {
-          g_object_ref (G_OBJECT (current_directory));
+          button = thunar_location_buttons_make_button (buttons, file);
+          buttons->list = g_list_append (buttons->list, button);
+          gtk_container_add (GTK_CONTAINER (buttons), button);
+          gtk_widget_show (button);
 
-          gtk_widget_push_composite_child ();
+          /* use 'Home' as fake root button */
+          if (!buttons->fake_root_button && eglible_for_fake_root (file))
+            buttons->fake_root_button = g_list_last (buttons->list);
 
-          /* add the new buttons */
-          for (file = current_directory; file != NULL; file = file_parent)
-            {
-              button = thunar_location_buttons_make_button (buttons, file);
-              buttons->list = g_list_append (buttons->list, button);
-              gtk_container_add (GTK_CONTAINER (buttons), button);
-              gtk_widget_show (button);
+          /* continue with the parent (if any) */
+          file_parent = thunar_file_get_parent (file, NULL);
 
-              /* use 'Home' as fake root button */
-              if (thunar_file_is_home (file))
-                buttons->fake_root_button = g_list_last (buttons->list);
-
-              /* continue with the parent (if any) */
-              file_parent = thunar_file_get_parent (file, NULL);
-
-              if (G_LIKELY (file != current_directory))
-                g_object_unref (G_OBJECT (file));
-            }
-
-          gtk_widget_pop_composite_child ();
+          if (G_LIKELY (file != current_directory))
+            g_object_unref (G_OBJECT (file));
         }
     }
 
@@ -541,41 +492,188 @@ thunar_location_buttons_unmap (GtkWidget *widget)
 
 
 static void
-thunar_location_buttons_size_request (GtkWidget      *widget,
-                                      GtkRequisition *requisition)
+thunar_location_buttons_get_preferred_width (GtkWidget  *widget,
+                                             gint       *minimum,
+                                             gint       *natural)
 {
   ThunarLocationButtons *buttons = THUNAR_LOCATION_BUTTONS (widget);
-  GtkRequisition         child_requisition;
+  gint                   width = 0, height = 0, child_width = 0, child_height = 0, filler_width = 0;
   GList                 *lp;
-  gint                   spacing;
-
-  gtk_widget_style_get (GTK_WIDGET (buttons),
-                        "spacing", &spacing,
-                        NULL);
-
-  requisition->width = 0;
-  requisition->height = 0;
 
   /* calculate the size of the biggest button */
   for (lp = buttons->list; lp != NULL; lp = lp->next)
     {
-      gtk_widget_size_request (GTK_WIDGET (lp->data), &child_requisition);
-      requisition->width = MAX (child_requisition.width, requisition->width);
-      requisition->height = MAX (child_requisition.height, requisition->height);
+      gtk_widget_get_preferred_width (GTK_WIDGET (lp->data), &child_width, NULL);
+      gtk_widget_get_preferred_height (GTK_WIDGET (lp->data), &child_height, NULL);
+      width = MAX (width, child_width);
+      height = MAX (height, child_height);
     }
 
   /* add space for the sliders if we have more than one path */
-  buttons->slider_width = MIN (requisition->height * 2 / 3 + 5, requisition->height);
+  buttons->slider_width = MIN (height * 2 / 3 + 5, height);
   if (buttons->list != NULL && buttons->list->next != NULL)
-    requisition->width += (spacing + buttons->slider_width) * 2;
+    width += (buttons->slider_width) * 2;
 
-  gtk_widget_size_request (buttons->left_slider, &child_requisition);
-  gtk_widget_size_request (buttons->right_slider, &child_requisition);
+  gtk_widget_get_preferred_width (buttons->filler_widget, &filler_width, NULL);
+  width += filler_width; // default is the minimum
 
-  requisition->width += GTK_CONTAINER (widget)->border_width * 2;
-  requisition->height += GTK_CONTAINER (widget)->border_width * 2;
+  *minimum = *natural = width;
+}
 
-  widget->requisition = *requisition;
+
+
+static void
+thunar_location_buttons_get_preferred_height (GtkWidget *widget,
+                                              gint      *minimum,
+                                              gint      *natural)
+{
+  ThunarLocationButtons *buttons = THUNAR_LOCATION_BUTTONS (widget);
+  gint                   height = 0, child_height = 0;
+  GList                 *lp;
+
+  /* calculate the size of the biggest button */
+  for (lp = buttons->list; lp != NULL; lp = lp->next)
+    {
+      gtk_widget_get_preferred_height (GTK_WIDGET (lp->data), &child_height, NULL);
+      height = MAX (height, child_height);
+    }
+
+  *minimum = *natural = height;
+}
+
+
+
+static GtkWidgetPath *
+thunar_location_buttons_get_path_for_child (GtkContainer *container,
+                                            GtkWidget    *child)
+{
+  ThunarLocationButtons *path_bar = THUNAR_LOCATION_BUTTONS (container);
+  GtkWidgetPath *path;
+
+  path = gtk_widget_path_copy (gtk_widget_get_path (GTK_WIDGET (path_bar)));
+
+  if (gtk_widget_get_visible (child) &&
+      gtk_widget_get_child_visible (child))
+    {
+      GtkWidgetPath *sibling_path;
+      GList *visible_children;
+      GList *l;
+      int pos;
+
+      /* 1. Build the list of visible children, in visually left-to-right order
+        * (i.e. independently of the widget's direction).  Note that our
+        * list is stored in innermost-to-outermost path order!
+        */
+      visible_children = NULL;
+      visible_children = g_list_prepend (visible_children, path_bar->right_slider);
+      visible_children = g_list_prepend (visible_children, path_bar->filler_widget);
+
+      for (l = path_bar->list; l; l = l->next)
+        {
+          if (gtk_widget_get_visible (GTK_WIDGET (l->data)) &&
+              gtk_widget_get_child_visible (GTK_WIDGET (l->data)))
+            visible_children = g_list_prepend (visible_children, l->data);
+        }
+
+      visible_children = g_list_prepend (visible_children, path_bar->left_slider);
+
+      if (gtk_widget_get_direction (GTK_WIDGET (path_bar)) == GTK_TEXT_DIR_RTL)
+        {
+          visible_children = g_list_reverse (visible_children);
+        }
+
+      /* 2. Find the index of the child within that list */
+      pos = 0;
+
+      for (l = visible_children; l; l = l->next)
+        {
+          GtkWidget *button = l->data;
+
+          if (button == child)
+            break;
+
+          pos++;
+        }
+
+      /* 3. Build the path */
+      sibling_path = gtk_widget_path_new ();
+
+      for (l = visible_children; l; l = l->next)
+        {
+          gtk_widget_path_append_for_widget (sibling_path, l->data);
+        }
+
+      gtk_widget_path_append_with_siblings (path, sibling_path, pos);
+
+      g_list_free (visible_children);
+      gtk_widget_path_unref (sibling_path);
+    }
+  else
+    {
+      gtk_widget_path_append_for_widget (path, child);
+    }
+
+  return path;
+}
+
+
+
+static void
+thunar_location_buttons_child_ordering_changed (ThunarLocationButtons *location_buttons)
+{
+  gtk_widget_reset_style (GTK_WIDGET (location_buttons));
+}
+
+
+
+static GList*
+thunar_location_buttons_detect_first_visible_button (ThunarLocationButtons *buttons,
+                                                     gint                   available_width,
+                                                     gint                  *resulting_occupied_width)
+{
+  GList *lp;
+  gint   button_width    = 0;
+  gint   resulting_width = 0;
+
+  /* walk all buttons starting by last, until no space is left */
+  for (lp = buttons->last_visible_button; lp != NULL; lp = lp->next)
+    {
+      gtk_widget_get_preferred_width (GTK_WIDGET (lp->data), &button_width, NULL);
+      if (resulting_width + button_width > available_width)
+        {
+          return lp->prev;
+        }
+      resulting_width += button_width;
+      if(resulting_occupied_width != NULL)
+        *resulting_occupied_width = resulting_width;
+    }
+  return g_list_last (buttons->list);
+}
+
+
+
+static GList*
+thunar_location_buttons_detect_last_visible_button (ThunarLocationButtons *buttons,
+                                                    gint                   available_width,
+                                                    gint                  *resulting_occupied_width)
+{
+  GList *lp;
+  gint   button_width    = 0;
+  gint   resulting_width = 0;
+
+  /* walk all buttons starting by first, until no space is left */
+  for (lp = buttons->first_visible_button; lp != NULL; lp = lp->prev)
+    {
+      gtk_widget_get_preferred_width (GTK_WIDGET (lp->data), &button_width, NULL);
+      if (resulting_width + button_width > available_width)
+        {
+          return lp->next;
+        }
+      resulting_width += button_width;
+      if(resulting_occupied_width != NULL)
+        *resulting_occupied_width = resulting_width;
+    }
+  return buttons->list;
 }
 
 
@@ -586,188 +684,167 @@ thunar_location_buttons_size_allocate (GtkWidget     *widget,
 {
   ThunarLocationButtons *buttons = THUNAR_LOCATION_BUTTONS (widget);
   GtkTextDirection       direction;
-  GtkAllocation          child_allocation;
-  GtkWidget             *child;
-  gboolean               need_sliders = FALSE;
-  gboolean               reached_end;
-  GList                 *first_button;
+  GtkAllocation          available_space;
+  GtkAllocation          folder_button_allocation;
+  GtkAllocation          first_slider_allocation;  /* left slider if direction is LTR */
+  GtkAllocation          second_slider_allocation; /* right slider if direction is LTR */
+  GtkAllocation          filler_allocation;
   GList                 *lp;
-  gint                   left_slider_offset = 0;
-  gint                   right_slider_offset = 0;
-  gint                   allocation_width;
+  gint                   required_width_total = 0;
   gint                   border_width;
-  gint                   slider_space;
-  gint                   spacing;
-  gint                   width;
+  gint                   temp_width;
+  gboolean               need_reorder = FALSE;
 
-  widget->allocation = *allocation;
-
+  gtk_widget_set_allocation (widget, allocation);
   /* if no path is set, we don't have to allocate anything */
   if (G_UNLIKELY (buttons->list == NULL))
     return;
 
-  gtk_widget_style_get (GTK_WIDGET (buttons), "spacing", &spacing, NULL);
-
   direction = gtk_widget_get_direction (widget);
-  border_width = GTK_CONTAINER (buttons)->border_width;
-  allocation_width = allocation->width - 2 * border_width;
+  border_width = gtk_container_get_border_width (GTK_CONTAINER (buttons));
+  available_space.x = allocation->x + border_width;
+  available_space.y = allocation->y + border_width;
+  available_space.width = allocation->width - 2 * border_width;
+  available_space.height = MAX (1, allocation->height - 2 * border_width );
 
-  /* check if we need to display the sliders */
-  if (G_LIKELY (buttons->fake_root_button != NULL))
-    width = buttons->slider_width + spacing;
+  first_slider_allocation.width = buttons->slider_width;
+  first_slider_allocation.height = available_space.height;
+  first_slider_allocation.y = available_space.y;
+
+  second_slider_allocation.width = buttons->slider_width;
+  second_slider_allocation.height = available_space.height;
+  second_slider_allocation.y = available_space.y;
+
+  if (G_LIKELY (direction == GTK_TEXT_DIR_LTR))
+    {
+      first_slider_allocation.x = available_space.x;
+      second_slider_allocation.x = available_space.x + available_space.width - buttons->slider_width;
+    }
   else
-    width = 0;
+    {
+      first_slider_allocation.x = available_space.x + available_space.width - buttons->slider_width;
+      second_slider_allocation.x = available_space.x;
+    }
+
+  gtk_widget_get_preferred_width (buttons->filler_widget, &filler_allocation.width, NULL);
+  required_width_total += buttons->slider_width * 2 + filler_allocation.width;
+  filler_allocation.height = available_space.height;
+  filler_allocation.y = available_space.y;
 
   for (lp = buttons->list; lp != NULL; lp = lp->next)
     {
-      width += GTK_WIDGET (lp->data)->requisition.width + spacing;
+      gtk_widget_get_preferred_width (GTK_WIDGET (lp->data), &temp_width, NULL);
+      required_width_total += temp_width;
       if (lp == buttons->fake_root_button)
         break;
     }
 
-  if (width <= allocation_width)
+  if ( required_width_total <= available_space.width  )
     {
-      if (G_LIKELY (buttons->fake_root_button != NULL))
-        first_button = buttons->fake_root_button;
+      /* Show full list of buttons, starting by fake root, if available */
+      if (buttons->fake_root_button == NULL)
+        buttons->first_visible_button = g_list_last (buttons->list);
       else
-        first_button = g_list_last (buttons->list);
+        buttons->first_visible_button = buttons->fake_root_button;
+      buttons->last_visible_button = buttons->list;
     }
   else
     {
-      slider_space = 2 * (spacing + buttons->slider_width);
+      /* reset calculation for required_width_total .. we need to cut off some folders */
+      required_width_total = first_slider_allocation.width + second_slider_allocation.width + filler_allocation.width;
 
-      if (buttons->first_scrolled_button != NULL)
-        first_button = buttons->first_scrolled_button;
-      else
-        first_button = buttons->list;
-      need_sliders = TRUE;
+      /* No scrolling defined ? Use last button as fixed start! */
+      if(buttons->last_visible_button == NULL && buttons->first_visible_button == NULL)
+        buttons->last_visible_button = buttons->list;
 
-      /* To see how much space we have, and how many buttons we can display.
-       * We start at the first button, count forward until hit the new
-       * button, then count backwards.
-       */
-      width = GTK_WIDGET (first_button->data)->requisition.width;
-      for (lp = first_button->prev, reached_end = FALSE; lp != NULL && !reached_end; lp = lp->prev)
-        {
-          child = lp->data;
-          if (width + child->requisition.width + spacing + slider_space > allocation_width)
-            reached_end = TRUE;
-          else if (lp == buttons->fake_root_button)
-            break;
-          else
-            width += child->requisition.width + spacing;
-        }
+      if(buttons->first_visible_button == NULL) /* last button is fixed defined */
+        buttons->first_visible_button = thunar_location_buttons_detect_first_visible_button(buttons, available_space.width - required_width_total, &temp_width);
+      else                                      /* first button is fixed defined */
+        buttons->last_visible_button = thunar_location_buttons_detect_last_visible_button(buttons, available_space.width - required_width_total, &temp_width);
 
-      while (first_button->next != NULL && !reached_end)
-        {
-          child = first_button->data;
-          if (width + child->requisition.width + spacing + slider_space > allocation_width)
-            {
-              reached_end = TRUE;
-            }
-          else
-            {
-              width += child->requisition.width + spacing;
-              if (first_button == buttons->fake_root_button)
-                break;
-              first_button = first_button->next;
-            }
-        }
+      required_width_total += temp_width;
     }
 
-  /* Now we allocate space to the buttons */
-  child_allocation.y = allocation->y + border_width;
-  child_allocation.height = MAX (1, allocation->height - border_width * 2);
-
-  if (G_UNLIKELY (direction == GTK_TEXT_DIR_RTL))
+  /* hide buttons before first_visible_button */
+  for (lp = buttons->first_visible_button->next; lp != NULL; lp = lp->next)
     {
-      child_allocation.x = allocation->x + allocation->width - border_width;
-      if (need_sliders || buttons->fake_root_button != NULL)
-        {
-          child_allocation.x -= spacing + buttons->slider_width;
-          left_slider_offset = allocation->width - border_width - buttons->slider_width;
-        }
+      need_reorder |= gtk_widget_get_child_visible (GTK_WIDGET (lp->data)) == TRUE;
+      gtk_widget_set_child_visible (GTK_WIDGET (lp->data), FALSE);
     }
+  /* hide buttons after last visible_button */
+  for (lp = buttons->last_visible_button->prev; lp != NULL; lp = lp->prev)
+    {
+      need_reorder |= gtk_widget_get_child_visible (GTK_WIDGET (lp->data)) == TRUE;
+      gtk_widget_set_child_visible (GTK_WIDGET (lp->data), FALSE);
+    }
+
+  /* allocate space for the buttons */
+  folder_button_allocation.y = available_space.y;
+  folder_button_allocation.height = available_space.height;
+  if (G_LIKELY (direction == GTK_TEXT_DIR_LTR))
+    folder_button_allocation.x = first_slider_allocation.x + first_slider_allocation.width;
   else
     {
-      child_allocation.x = allocation->x + border_width;
-      if (need_sliders || buttons->fake_root_button != NULL)
-        {
-          left_slider_offset = border_width;
-          child_allocation.x += spacing + buttons->slider_width;
-        }
+      if (first_slider_allocation.width == 0)
+        folder_button_allocation.x = available_space.x + available_space.width;
+      else
+        folder_button_allocation.x = first_slider_allocation.x;
     }
 
-  for (lp = first_button; lp != NULL; lp = lp->prev)
+  for (lp = buttons->first_visible_button; lp != NULL; lp = lp->prev)
     {
-      child = lp->data;
+      gtk_widget_get_preferred_width (GTK_WIDGET (lp->data), &folder_button_allocation.width, NULL);
 
-      child_allocation.width = child->requisition.width;
       if (G_UNLIKELY (direction == GTK_TEXT_DIR_RTL))
-        child_allocation.x -= child_allocation.width;
+        folder_button_allocation.x -= folder_button_allocation.width;
 
-      /* check to see if we don't have any more space to allocate buttons */
-      if (need_sliders && direction == GTK_TEXT_DIR_RTL)
-        {
-          if (child_allocation.x - spacing - buttons->slider_width < widget->allocation.x + border_width)
-            break;
-        }
-      else if (need_sliders && direction == GTK_TEXT_DIR_LTR)
-        {
-          if (child_allocation.x + child_allocation.width + spacing + buttons->slider_width > widget->allocation.x + border_width + allocation_width)
-            break;
-        }
-
+      need_reorder |= gtk_widget_get_child_visible (GTK_WIDGET (lp->data)) == FALSE;
       gtk_widget_set_child_visible (GTK_WIDGET (lp->data), TRUE);
-      gtk_widget_size_allocate (child, &child_allocation);
+      gtk_widget_size_allocate (lp->data, &folder_button_allocation);
 
-      if (direction == GTK_TEXT_DIR_RTL)
-        {
-          child_allocation.x -= spacing;
-          right_slider_offset = border_width;
-        }
-      else
-        {
-          child_allocation.x += child_allocation.width + spacing;
-          right_slider_offset = allocation->width - border_width - buttons->slider_width;
-        }
+      if (G_LIKELY (direction == GTK_TEXT_DIR_LTR))
+        folder_button_allocation.x += folder_button_allocation.width;
+
+      if( lp == buttons->last_visible_button )
+        break;
     }
 
-  /* now we go hide all the buttons that don't fit */
-  for (; lp != NULL; lp = lp->prev)
-    gtk_widget_set_child_visible (GTK_WIDGET (lp->data), FALSE);
-  for (lp = first_button->next; lp != NULL; lp = lp->next)
-    gtk_widget_set_child_visible (GTK_WIDGET (lp->data), FALSE);
+  /* allocate the filler */
+  filler_allocation.width += available_space.width - required_width_total;
+  filler_allocation.x = folder_button_allocation.x;
+  if (G_UNLIKELY (direction == GTK_TEXT_DIR_RTL))
+    filler_allocation.x -= filler_allocation.width;
+  gtk_widget_size_allocate (GTK_WIDGET (buttons->filler_widget), &filler_allocation);
 
-  if (need_sliders || buttons->fake_root_button != NULL)
-    {
-      child_allocation.width = buttons->slider_width;
-      child_allocation.x = left_slider_offset + allocation->x;
-      gtk_widget_size_allocate (buttons->left_slider, &child_allocation);
-      gtk_widget_set_child_visible (buttons->left_slider, TRUE);
-      gtk_widget_show_all (buttons->left_slider);
+  /* allocate the sliders */
+  gtk_widget_get_preferred_width (GTK_WIDGET (buttons->left_slider), &temp_width, NULL); //to dont get gtk warnings
+  gtk_widget_get_preferred_width (GTK_WIDGET (buttons->right_slider), &temp_width, NULL);
+  gtk_widget_size_allocate (buttons->left_slider, &first_slider_allocation);
+  gtk_widget_size_allocate (buttons->right_slider, &second_slider_allocation);
+  thunar_location_buttons_update_sliders (buttons);
 
-      thunar_location_buttons_update_sliders (buttons);
-    }
-  else
-    {
-      gtk_widget_set_child_visible (buttons->left_slider, FALSE);
-    }
+  if (need_reorder)
+    thunar_location_buttons_child_ordering_changed (buttons);
 
-  if (need_sliders)
-    {
-      child_allocation.width = buttons->slider_width;
-      child_allocation.x = right_slider_offset + allocation->x;
-      gtk_widget_size_allocate (buttons->right_slider, &child_allocation);
-      gtk_widget_set_child_visible (buttons->right_slider, TRUE);
-      gtk_widget_show_all (buttons->right_slider);
+  gtk_widget_queue_draw (GTK_WIDGET (buttons));
+}
 
-      thunar_location_buttons_update_sliders (buttons);
-    }
-  else
-    {
-      gtk_widget_set_child_visible (buttons->right_slider, FALSE);
-    }
+
+
+static gboolean
+thunar_location_buttons_draw (GtkWidget *widget,
+                              cairo_t   *cr)
+{
+  GtkStyleContext *context;
+  GtkAllocation alloc;
+
+  context = gtk_widget_get_style_context (widget);
+  gtk_widget_get_allocation (widget, &alloc);
+
+  gtk_render_background (context, cr, 0, 0, alloc.width, alloc.height);
+  gtk_render_frame (context, cr, 0, 0, alloc.width, alloc.height);
+
+  return GTK_WIDGET_CLASS (thunar_location_buttons_parent_class)->draw (widget, cr);
 }
 
 
@@ -831,6 +908,9 @@ thunar_location_buttons_remove (GtkContainer *container,
         g_list_free (lp);
         return;
       }
+
+  /* fallback case */
+  thunar_location_buttons_remove_1 (container, widget);
 }
 
 
@@ -861,6 +941,9 @@ thunar_location_buttons_forall (GtkContainer *container,
 
   if (buttons->right_slider != NULL && include_internals)
     (*callback) (buttons->right_slider, callback_data);
+
+  if (buttons->filler_widget != NULL && include_internals)
+    (*callback) (buttons->filler_widget, callback_data);
 }
 
 
@@ -878,12 +961,12 @@ thunar_location_buttons_make_button (ThunarLocationButtons *buttons,
   thunar_location_button_set_file (THUNAR_LOCATION_BUTTON (button), file);
 
   /* the current directory is active */
-  thunar_location_button_set_active (THUNAR_LOCATION_BUTTON (button), (file == buttons->current_directory));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), (file == buttons->current_directory));
 
   /* connect signal handlers */
-  g_signal_connect (G_OBJECT (button), "clicked", G_CALLBACK (thunar_location_buttons_clicked), buttons);
+  g_signal_connect (G_OBJECT (button), "location-button-clicked", G_CALLBACK (thunar_location_buttons_clicked), buttons);
   g_signal_connect (G_OBJECT (button), "gone", G_CALLBACK (thunar_location_buttons_gone), buttons);
-  g_signal_connect (G_OBJECT (button), "context-menu", G_CALLBACK (thunar_location_buttons_context_menu), buttons);
+  g_signal_connect (G_OBJECT (button), "popup-menu", G_CALLBACK (thunar_location_buttons_context_menu), buttons);
 
   return button;
 }
@@ -907,14 +990,10 @@ thunar_location_buttons_scroll_timeout (gpointer user_data)
 {
   ThunarLocationButtons *buttons = THUNAR_LOCATION_BUTTONS (user_data);
 
-  GDK_THREADS_ENTER ();
-
   if (gtk_widget_has_focus (buttons->left_slider))
     thunar_location_buttons_scroll_left (buttons->left_slider, buttons);
   else if (gtk_widget_has_focus (buttons->right_slider))
     thunar_location_buttons_scroll_right (buttons->right_slider, buttons);
-
-  GDK_THREADS_LEAVE ();
 
   return TRUE;
 }
@@ -991,9 +1070,10 @@ thunar_location_buttons_slider_button_press (GtkWidget             *button,
 
   if (G_LIKELY (buttons->scroll_timeout_id == 0))
     {
-      buttons->scroll_timeout_id = g_timeout_add_full (G_PRIORITY_LOW, THUNAR_LOCATION_BUTTONS_SCROLL_TIMEOUT,
-                                                       thunar_location_buttons_scroll_timeout, buttons,
-                                                       thunar_location_buttons_scroll_timeout_destroy);
+      buttons->scroll_timeout_id = gdk_threads_add_timeout_full (G_PRIORITY_LOW,
+                                                                 THUNAR_LOCATION_BUTTONS_SCROLL_TIMEOUT,
+                                                                 thunar_location_buttons_scroll_timeout, buttons,
+                                                                 thunar_location_buttons_scroll_timeout_destroy);
     }
 
   return FALSE;
@@ -1021,8 +1101,6 @@ static void
 thunar_location_buttons_scroll_left (GtkWidget             *button,
                                      ThunarLocationButtons *buttons)
 {
-  GList *lp;
-
   if (G_UNLIKELY (buttons->ignore_click))
     {
       buttons->ignore_click = FALSE;
@@ -1030,15 +1108,13 @@ thunar_location_buttons_scroll_left (GtkWidget             *button,
     }
 
   gtk_widget_queue_resize (GTK_WIDGET (buttons));
-
-  for (lp = g_list_last (buttons->list); lp != NULL; lp = lp->prev)
-    if (lp->prev != NULL && gtk_widget_get_child_visible (GTK_WIDGET (lp->prev->data)))
-      {
-        if (lp->prev == buttons->fake_root_button)
-          buttons->fake_root_button = NULL;
-        buttons->first_scrolled_button = lp;
-        break;
-      }
+  if (buttons->first_visible_button->next != NULL)
+    {
+      if (buttons->first_visible_button == buttons->fake_root_button)
+        buttons->fake_root_button = NULL;
+      buttons->first_visible_button = buttons->first_visible_button->next;
+      buttons->last_visible_button = NULL;
+    }
 }
 
 
@@ -1047,73 +1123,17 @@ static void
 thunar_location_buttons_scroll_right (GtkWidget             *button,
                                       ThunarLocationButtons *buttons)
 {
-  GtkTextDirection direction;
-  GList           *right_button = NULL;
-  GList           *left_button = NULL;
-  GList           *lp;
-  gint             space_available;
-  gint             space_needed;
-  gint             border_width;
-  gint             spacing;
-
   if (G_UNLIKELY (buttons->ignore_click))
     {
       buttons->ignore_click = FALSE;
       return;
     }
 
-  gtk_widget_style_get (GTK_WIDGET (buttons),
-                        "spacing", &spacing,
-                        NULL);
-
   gtk_widget_queue_resize (GTK_WIDGET (buttons));
-
-  border_width = GTK_CONTAINER (buttons)->border_width;
-  direction = gtk_widget_get_direction (GTK_WIDGET (buttons));
-
-  /* find the button at the 'right' end that we have to make visible */
-  for (lp = buttons->list; lp != NULL; lp = lp->next)
-    if (lp->next != NULL && gtk_widget_get_child_visible (GTK_WIDGET (lp->next->data)))
-      {
-        right_button = lp;
-        break;
-      }
-
-  if (G_UNLIKELY (right_button == NULL))
-    return;
-
-  /* find the last visible button on the 'left' end */
-  for (lp = g_list_last (buttons->list); lp != NULL; lp = lp->prev)
-    if (gtk_widget_get_child_visible (GTK_WIDGET (lp->data)))
-      {
-        left_button = lp;
-        break;
-      }
-
-  space_needed = GTK_WIDGET (right_button->data)->allocation.width + spacing;
-  if (direction == GTK_TEXT_DIR_RTL)
+  if (buttons->last_visible_button->prev != NULL)
     {
-      space_available = buttons->right_slider->allocation.x - GTK_WIDGET (buttons)->allocation.x;
-    }
-  else
-    {
-      space_available = (GTK_WIDGET (buttons)->allocation.x + GTK_WIDGET (buttons)->allocation.width - border_width)
-                      - (buttons->right_slider->allocation.x + buttons->right_slider->allocation.width);
-    }
-
-  if (G_UNLIKELY (left_button == NULL))
-    return;
-
-  /* We have space_available extra space that's not being used.  We
-   * need space_needed space to make the button fit.  So we walk down
-   * from the end, removing buttons until we get all the space we
-   * need.
-   */
-  while (space_available < space_needed)
-    {
-      space_available += GTK_WIDGET (left_button->data)->allocation.width + spacing;
-      left_button = left_button->prev;
-      buttons->first_scrolled_button = left_button;
+      buttons->last_visible_button = buttons->last_visible_button->prev;
+      buttons->first_visible_button = NULL;
     }
 }
 
@@ -1154,22 +1174,12 @@ thunar_location_buttons_clicked (ThunarLocationButton  *button,
   /* check if the button is visible on the button bar */
   if (!gtk_widget_get_child_visible (GTK_WIDGET (button)))
     {
-      /* scroll to the button */
-      buttons->first_scrolled_button = g_list_find (buttons->list, button);
-      gtk_widget_queue_resize (GTK_WIDGET (buttons));
-
-      /* we may need to reset the fake_root_button */
-      if (G_LIKELY (buttons->fake_root_button != NULL))
+      for (lp = buttons->list; lp != NULL; lp = lp->next)
         {
-          /* check if the fake_root_button is before the first_scrolled_button (from right to left) */
-          for (lp = buttons->list; lp != NULL && lp != buttons->first_scrolled_button; lp = lp->next)
-            if (lp == buttons->fake_root_button)
-              {
-                /* reset the fake_root_button */
-                buttons->fake_root_button = NULL;
-                break;
-              }
+          if( lp->data == button )
+            buttons->first_visible_button = lp;
         }
+      buttons->last_visible_button = NULL;
     }
 
   /* update all buttons */
@@ -1181,7 +1191,7 @@ thunar_location_buttons_clicked (ThunarLocationButton  *button,
 
       /* update the location button state (making sure to not recurse with the "clicked" handler) */
       g_signal_handlers_block_by_func (G_OBJECT (button), thunar_location_buttons_clicked, buttons);
-      thunar_location_button_set_active (button, directory == buttons->current_directory);
+      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), directory == buttons->current_directory);
       g_signal_handlers_unblock_by_func (G_OBJECT (button), thunar_location_buttons_clicked, buttons);
     }
 
@@ -1209,84 +1219,99 @@ thunar_location_buttons_gone (ThunarLocationButton  *button,
 
 
 
-static void
+static gboolean
 thunar_location_buttons_context_menu (ThunarLocationButton  *button,
-                                      GdkEventButton        *event,
                                       ThunarLocationButtons *buttons)
 {
   ThunarClipboardManager *clipboard;
   const gchar            *display_name;
   ThunarFile             *file;
   GtkAction              *action;
-  GtkWidget              *menu;
+  GtkWidget              *menu, *item;
 
-  _thunar_return_if_fail (THUNAR_IS_LOCATION_BUTTONS (buttons));
-  _thunar_return_if_fail (THUNAR_IS_LOCATION_BUTTON (button));
+  _thunar_return_val_if_fail (THUNAR_IS_LOCATION_BUTTONS (buttons), FALSE);
+  _thunar_return_val_if_fail (THUNAR_IS_LOCATION_BUTTON (button), FALSE);
 
   /* determine the file for the button */
   file = thunar_location_button_get_file (button);
   if (G_LIKELY (file != NULL))
     {
-      /* we cannot popup the context menu without an ui manager */
-      if (G_LIKELY (buttons->ui_manager != NULL))
-        {
-          /* determine the display name of the file */
-          display_name = thunar_file_get_display_name (file);
+      menu = gtk_menu_new ();
 
-          /* be sure to keep a reference on the navigation bar */
-          g_object_ref (G_OBJECT (buttons));
+      /* determine the display name of the file */
+      display_name = thunar_file_get_display_name (file);
 
-          /* grab a reference on the clipboard manager for this display */
-          clipboard = thunar_clipboard_manager_get_for_display (gtk_widget_get_display (GTK_WIDGET (buttons)));
+      /* be sure to keep a reference on the navigation bar */
+      g_object_ref (G_OBJECT (buttons));
 
-          /* setup the "Open" action */
-          action = gtk_action_group_get_action (buttons->action_group, "location-buttons-open");
-          thunar_gtk_action_set_tooltip (action, _("Open \"%s\" in this window"), display_name);
-          g_object_set_qdata_full (G_OBJECT (action), thunar_file_quark, g_object_ref (G_OBJECT (file)), (GDestroyNotify) g_object_unref);
-          gtk_action_set_sensitive (action, (file != buttons->current_directory));
+      /* grab a reference on the clipboard manager for this display */
+      clipboard = thunar_clipboard_manager_get_for_display (gtk_widget_get_display (GTK_WIDGET (buttons)));
 
-          /* setup the "Open in New Window" action */
-          action = gtk_action_group_get_action (buttons->action_group, "location-buttons-open-in-new-window");
-          thunar_gtk_action_set_tooltip (action, _("Open \"%s\" in a new window"), display_name);
-          g_object_set_qdata_full (G_OBJECT (action), thunar_file_quark, g_object_ref (G_OBJECT (file)), (GDestroyNotify) g_object_unref);
+      /* setup the "Open" action */
+      action = gtk_action_group_get_action (buttons->action_group, "location-buttons-open");
+      thunar_gtk_action_set_tooltip (action, _("Open \"%s\" in this window"), display_name);
+      g_object_set_qdata_full (G_OBJECT (action), thunar_file_quark, g_object_ref (G_OBJECT (file)), (GDestroyNotify) g_object_unref);
+      gtk_action_set_sensitive (action, (file != buttons->current_directory));
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_action_create_menu_item (action));
 
-          /* setup the "Open in New Tab" action */
-          action = gtk_action_group_get_action (buttons->action_group, "location-buttons-open-in-new-tab");
-          thunar_gtk_action_set_tooltip (action, _("Open \"%s\" in a new tab"), display_name);
-          g_object_set_qdata_full (G_OBJECT (action), thunar_file_quark, g_object_ref (G_OBJECT (file)), (GDestroyNotify) g_object_unref);
+      /* setup the "Open in New Tab" action */
+      action = gtk_action_group_get_action (buttons->action_group, "location-buttons-open-in-new-tab");
+      thunar_gtk_action_set_tooltip (action, _("Open \"%s\" in a new tab"), display_name);
+      g_object_set_qdata_full (G_OBJECT (action), thunar_file_quark, g_object_ref (G_OBJECT (file)), (GDestroyNotify) g_object_unref);
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_action_create_menu_item (action));
 
-          /* setup the "Create Folder..." action */
-          action = gtk_action_group_get_action (buttons->action_group, "location-buttons-create-folder");
-          thunar_gtk_action_set_tooltip (action, _("Create a new folder in \"%s\""), display_name);
-          g_object_set_qdata_full (G_OBJECT (action), thunar_file_quark, g_object_ref (G_OBJECT (file)), (GDestroyNotify) g_object_unref);
-          gtk_action_set_sensitive (action, thunar_file_is_writable (file));
-          gtk_action_set_visible (action, !thunar_file_is_trashed (file));
+      /* setup the "Open in New Window" action */
+      action = gtk_action_group_get_action (buttons->action_group, "location-buttons-open-in-new-window");
+      thunar_gtk_action_set_tooltip (action, _("Open \"%s\" in a new window"), display_name);
+      g_object_set_qdata_full (G_OBJECT (action), thunar_file_quark, g_object_ref (G_OBJECT (file)), (GDestroyNotify) g_object_unref);
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_action_create_menu_item (action));
 
-          /* setup the "Empty Trash" action */
-          action = gtk_action_group_get_action (buttons->action_group, "location-buttons-empty-trash");
-          gtk_action_set_visible (action, (thunar_file_is_root (file) && thunar_file_is_trashed (file)));
-          gtk_action_set_sensitive (action, (thunar_file_get_size (file) > 0));
+      /* setup the "Create Folder..." action */
+      action = gtk_action_group_get_action (buttons->action_group, "location-buttons-create-folder");
+      thunar_gtk_action_set_tooltip (action, _("Create a new folder in \"%s\""), display_name);
+      g_object_set_qdata_full (G_OBJECT (action), thunar_file_quark, g_object_ref (G_OBJECT (file)), (GDestroyNotify) g_object_unref);
+      gtk_action_set_sensitive (action, thunar_file_is_writable (file));
+      gtk_action_set_visible (action, !thunar_file_is_trashed (file));
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_action_create_menu_item (action));
 
-          /* setup the "Paste Into Folder" action */
-          action = gtk_action_group_get_action (buttons->action_group, "location-buttons-paste-into-folder");
-          thunar_gtk_action_set_tooltip (action, _("Move or copy files previously selected by a Cut or Copy command into \"%s\""), display_name);
-          g_object_set_qdata_full (G_OBJECT (action), thunar_file_quark, g_object_ref (G_OBJECT (file)), (GDestroyNotify) g_object_unref);
-          gtk_action_set_sensitive (action, thunar_clipboard_manager_get_can_paste (clipboard));
+      /* setup the "Empty Trash" action */
+      action = gtk_action_group_get_action (buttons->action_group, "location-buttons-empty-trash");
+      gtk_action_set_visible (action, (thunar_file_is_root (file) && thunar_file_is_trashed (file)));
+      gtk_action_set_sensitive (action, (thunar_file_get_size (file) > 0));
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_action_create_menu_item (action));
 
-          /* setup the "Properties..." action */
-          action = gtk_action_group_get_action (buttons->action_group, "location-buttons-properties");
-          thunar_gtk_action_set_tooltip (action, _("View the properties of the folder \"%s\""), display_name);
-          g_object_set_qdata_full (G_OBJECT (action), thunar_file_quark, g_object_ref (G_OBJECT (file)), (GDestroyNotify) g_object_unref);
+      item = gtk_separator_menu_item_new ();
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
+      gtk_widget_show (item);
 
-          /* run the menu on the screen on the buttons' screen */
-          menu = gtk_ui_manager_get_widget (buttons->ui_manager, "/location-buttons-context-menu");
-          thunar_gtk_menu_run (GTK_MENU (menu), GTK_WIDGET (buttons), NULL, NULL, event->button, event->time);
+      /* setup the "Paste Into Folder" action */
+      action = gtk_action_group_get_action (buttons->action_group, "location-buttons-paste-into-folder");
+      thunar_gtk_action_set_tooltip (action, _("Move or copy files previously selected by a Cut or Copy command into \"%s\""), display_name);
+      g_object_set_qdata_full (G_OBJECT (action), thunar_file_quark, g_object_ref (G_OBJECT (file)), (GDestroyNotify) g_object_unref);
+      gtk_action_set_sensitive (action, thunar_clipboard_manager_get_can_paste (clipboard));
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_action_create_menu_item (action));
 
-          /* cleanup */
-          g_object_unref (G_OBJECT (buttons));
-          g_object_unref (G_OBJECT (clipboard));
-        }
+      item = gtk_separator_menu_item_new ();
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
+      gtk_widget_show (item);
+
+      /* setup the "Properties..." action */
+      action = gtk_action_group_get_action (buttons->action_group, "location-buttons-properties");
+      thunar_gtk_action_set_tooltip (action, _("View the properties of the folder \"%s\""), display_name);
+      g_object_set_qdata_full (G_OBJECT (action), thunar_file_quark, g_object_ref (G_OBJECT (file)), (GDestroyNotify) g_object_unref);
+      gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_action_create_menu_item (action));
+
+      /* run the menu on the screen on the buttons' screen */
+      thunar_gtk_menu_run (GTK_MENU (menu), GTK_WIDGET (buttons), NULL, NULL, 0, gtk_get_current_event_time ());
+
+      /* cleanup */
+      g_object_unref (buttons);
+      g_object_unref (clipboard);
+
+      return TRUE;
     }
+
+  return FALSE;
 }
 
 
@@ -1309,9 +1334,9 @@ thunar_location_buttons_action_create_folder (GtkAction             *action,
     return;
 
   /* ask the user to enter a name for the new folder */
-  name = thunar_show_create_dialog (GTK_WIDGET (buttons), 
-                                    "inode/directory", 
-                                    _("New Folder"), 
+  name = thunar_show_create_dialog (GTK_WIDGET (buttons),
+                                    "inode/directory",
+                                    _("New Folder"),
                                     _("Create New Folder"));
   if (G_LIKELY (name != NULL))
     {
@@ -1345,13 +1370,13 @@ thunar_location_buttons_action_down_folder (GtkAction             *action,
 
   /* lookup the active button */
   for (lp = buttons->list; lp != NULL; lp = lp->next)
-    if (thunar_location_button_get_active (lp->data))
+    if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (lp->data)))
       {
         /* check if we have a folder below that one */
         if (G_LIKELY (lp->prev != NULL))
           {
             /* enter that folder */
-            thunar_location_button_clicked (lp->prev->data);
+            gtk_button_clicked (GTK_BUTTON (lp->prev->data));
           }
 
         break;

@@ -40,6 +40,15 @@ enum
 
 static guint file_info_signals[LAST_SIGNAL];
 
+/**
+ * SECTION: thunarx-file-info
+ * @short_description: Abstraction of a file handled within the file manager
+ * @title: ThunarxFileInfo
+ * @include: thunarx/thunarx.h
+ *
+ * The <interface>ThunarxFileInfo</interface> interface provides extensions with
+ * a way to access information about a file handled within the file manager.
+ */
 
 
 GType
@@ -59,7 +68,7 @@ thunarx_file_info_get_type (void)
                                             0);
 
       g_type_interface_add_prerequisite (type, G_TYPE_OBJECT);
-      
+
       /**
        * ThunarxFileInfo::changed:
        * @file_info : a #ThunarxFileInfo.
@@ -290,12 +299,12 @@ thunarx_file_info_is_directory (ThunarxFileInfo *file_info)
  *
  * Returns the #GFileInfo associated with @file_info,
  * which includes additional information about the @file_info
- * as queried from GIO earlier. The caller is responsible to free the 
- * returned #GFileInfo object using g_object_unref() when 
+ * as queried from GIO earlier. The caller is responsible to free the
+ * returned #GFileInfo object using g_object_unref() when
  * no longer needed.
  *
- * Return value: the #GFileInfo object associated with @file_info,
- *               which MUST be freed using g_object_unref().
+ * Returns: (transfer full): the #GFileInfo object associated with @file_info,
+ *          which MUST be freed using g_object_unref().
  **/
 GFileInfo*
 thunarx_file_info_get_file_info (ThunarxFileInfo *file_info)
@@ -311,14 +320,13 @@ thunarx_file_info_get_file_info (ThunarxFileInfo *file_info)
  * @file_info : a #ThunarxFileInfo.
  *
  * Returns the #GFileInfo which includes additional information about
- * the filesystem @file_info resides on. The caller is responsible to 
- * free the returned #GFileInfo object using g_object_unref() when 
+ * the filesystem @file_info resides on. The caller is responsible to
+ * free the returned #GFileInfo object using g_object_unref() when
  * no longer needed.
  *
- * Return value: the #GFileInfo containing information about the
- *               filesystem of @file_info or %NULL if no filesystem 
- *               information is available. It MUST be released using
- *               g_object_unref().
+ * Returns: (transfer full): the #GFileInfo containing information about the
+ *          filesystem of @file_info or %NULL if no filesystem information is
+ *          available. It MUST be released using g_object_unref().
  **/
 GFileInfo*
 thunarx_file_info_get_filesystem_info (ThunarxFileInfo *file_info)
@@ -338,8 +346,8 @@ thunarx_file_info_get_filesystem_info (ThunarxFileInfo *file_info)
  * is responsible to release the returned #GFile using g_object_unref()
  * when no longer needed.
  *
- * Return value: the #GFile to which @file_info points. It MUST be
- *               released using g_object_unref().
+ * Returns: (transfer full): the #GFile to which @file_info points. It MUST be
+ *          released using g_object_unref().
  **/
 GFile*
 thunarx_file_info_get_location (ThunarxFileInfo *file_info)
@@ -408,12 +416,12 @@ thunarx_file_info_list_get_type (void)
 
 /**
  * thunarx_file_info_list_copy:
- * @file_infos : a #GList of #ThunarxFileInfo<!---->s.
+ * @file_infos: (element-type ThunarxFileInfo): a #GList of #ThunarxFileInfo<!---->s.
  *
  * Does a deep copy of @file_infos and returns the
  * new list.
  *
- * Return value: a copy of @file_infos.
+ * Returns: (transfer full) (element-type ThunarxFileInfo): a copy of @file_infos.
  **/
 GList*
 thunarx_file_info_list_copy (GList *file_infos)
@@ -434,7 +442,7 @@ thunarx_file_info_list_copy (GList *file_infos)
 
 /**
  * thunarx_file_info_list_free:
- * @file_infos : a #GList of #ThunarxFileInfo<!---->s.
+ * @file_infos: (element-type ThunarxFileInfo): a #GList of #ThunarxFileInfo<!---->s.
  *
  * Frees the resources allocated for the @file_infos
  * list and decreases the reference count on the

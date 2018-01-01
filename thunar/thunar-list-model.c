@@ -722,7 +722,15 @@ thunar_list_model_get_value (GtkTreeModel *model,
           /* determine sane display name for the owner */
           name = thunar_user_get_name (user);
           real_name = thunar_user_get_real_name (user);
-          str = G_LIKELY (real_name != NULL) ? g_strdup_printf ("%s (%s)", real_name, name) : g_strdup (name);
+          if(G_LIKELY (real_name != NULL))
+            {
+              if(strcmp (name, real_name) == 0)
+                str = g_strdup (name);
+              else
+                str = g_strdup_printf ("%s (%s)", real_name, name);
+            }
+          else
+            str = g_strdup (name);
           g_value_take_string (value, str);
           g_object_unref (G_OBJECT (user));
         }
@@ -1154,7 +1162,7 @@ thunar_list_model_sort (ThunarListModel *store)
     new_order[g_sequence_iter_get_position (old_order[n])] = n;
 
   /* tell the view about the new item order */
-  path = gtk_tree_path_new_root ();
+  path = gtk_tree_path_new_first ();
   gtk_tree_model_rows_reordered (GTK_TREE_MODEL (store), path, NULL, new_order);
   gtk_tree_path_free (path);
 
@@ -1231,7 +1239,7 @@ thunar_list_model_file_changed (ThunarFileMonitor *file_monitor,
                 }
 
               /* tell the view about the new item order */
-              path = gtk_tree_path_new_root ();
+              path = gtk_tree_path_new_first ();
               gtk_tree_model_rows_reordered (GTK_TREE_MODEL (store), path, NULL, new_order);
               gtk_tree_path_free (path);
 

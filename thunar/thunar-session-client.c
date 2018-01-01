@@ -37,6 +37,7 @@
 #endif
 
 #include <glib/gstdio.h>
+#include <gdk/gdkx.h>
 
 #include <thunar/thunar-application.h>
 #include <thunar/thunar-ice.h>
@@ -170,9 +171,13 @@ thunar_session_client_connect (ThunarSessionClient *session_client,
     return FALSE;
 
   /* tell GDK about our new session id */
-  gdk_set_sm_client_id (id);
+  gdk_x11_set_sm_client_id (id);
 
   /* remember the returned client id */
+#if GLIB_CHECK_VERSION (2, 46, 0)
+    /* just use the memory */
+    session_client->id = id;
+#else
   if (g_mem_is_system_malloc ())
     {
       /* just use the memory */
@@ -184,6 +189,7 @@ thunar_session_client_connect (ThunarSessionClient *session_client,
       session_client->id = g_strdup (id);
       free (id);
     }
+#endif
 
   /* determine the session file path */
   spec = g_strconcat ("sessions/Thunar-", session_client->id, NULL);
@@ -335,11 +341,13 @@ static void
 thunar_session_client_die (SmcConn              connection,
                            ThunarSessionClient *session_client)
 {
+  ThunarApplication* application;
+
   _thunar_return_if_fail (THUNAR_IS_SESSION_CLIENT (session_client));
   _thunar_return_if_fail (session_client->connection == connection);
 
-  /* terminate the application */
-  gtk_main_quit ();
+  application = thunar_application_get ();
+  thunar_application_quit (application);
 }
 
 

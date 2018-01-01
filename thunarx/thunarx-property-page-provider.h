@@ -27,7 +27,7 @@
 
 #include <thunarx/thunarx-property-page.h>
 
-G_BEGIN_DECLS;
+G_BEGIN_DECLS
 
 typedef struct _ThunarxPropertyPageProviderIface ThunarxPropertyPageProviderIface;
 typedef struct _ThunarxPropertyPageProvider      ThunarxPropertyPageProvider;
@@ -37,6 +37,13 @@ typedef struct _ThunarxPropertyPageProvider      ThunarxPropertyPageProvider;
 #define THUNARX_IS_PROPERTY_PAGE_PROVIDER(obj)        (G_TYPE_CHECK_INSTANCE_TYPE ((obj), THUNARX_TYPE_PROPERTY_PAGE_PROVIDER))
 #define THUNARX_PROPERTY_PAGE_PROVIDER_GET_IFACE(obj) (G_TYPE_INSTANCE_GET_INTERFACE ((obj), THUNARX_TYPE_PROPERTY_PAGE_PROVIDER, ThunarxPropertyPageProviderIface))
 
+/**
+ * ThunarxPropertyPageProviderIface:
+ * @get_pages: see thunarx_property_page_provider_get_pages().
+ *
+ * Interface with virtual methods implemented by extensions that provide
+ * additional pages for the file properties dialog.
+ */
 struct _ThunarxPropertyPageProviderIface
 {
   /*< private >*/
@@ -59,6 +66,6 @@ GType  thunarx_property_page_provider_get_type  (void) G_GNUC_CONST;
 GList *thunarx_property_page_provider_get_pages (ThunarxPropertyPageProvider *provider,
                                                  GList                       *files);
 
-G_END_DECLS;
+G_END_DECLS
 
 #endif /* !__THUNARX_PROPERTY_PAGE_PROVIDER_H__ */

@@ -3,18 +3,18 @@
  * Copyright (c) 2005-2006 Benedikt Meurer <benny@xfce.org>
  * Copyright (c) 2009-2011 Jannis Pohlmann <jannis@xfce.org>
  *
- * This program is free software; you can redistribute it and/or 
+ * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of 
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public 
- * License along with this program; if not, write to the Free 
+ * You should have received a copy of the GNU General Public
+ * License along with this program; if not, write to the Free
  * Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  * Boston, MA 02110-1301, USA.
  */
@@ -494,15 +494,19 @@ thunar_icon_factory_lookup_icon (ThunarIconFactory *factory,
         }
       else
         {
+          /* FIXME: is there a better approach? */
+          if (g_strcmp0 (name, "inode-directory") == 0)
+            name = "folder";
+
           /* check if the icon theme contains an icon of that name */
-          icon_info = gtk_icon_theme_lookup_icon (factory->icon_theme, name, size, 0);
+          icon_info = gtk_icon_theme_lookup_icon (factory->icon_theme, name, size, GTK_ICON_LOOKUP_FORCE_SIZE);
           if (G_LIKELY (icon_info != NULL))
             {
               /* try to load the pixbuf from the icon info */
               pixbuf = gtk_icon_info_load_icon (icon_info, NULL);
 
               /* cleanup */
-              gtk_icon_info_free (icon_info);
+              g_object_unref (icon_info);
             }
         }
 
@@ -749,7 +753,7 @@ thunar_icon_factory_load_icon (ThunarIconFactory        *factory,
 {
   _thunar_return_val_if_fail (THUNAR_IS_ICON_FACTORY (factory), NULL);
   _thunar_return_val_if_fail (size > 0, NULL);
-  
+
   /* cannot happen unless there's no XSETTINGS manager
    * for the default screen, but just in case...
    */
@@ -833,9 +837,9 @@ thunar_icon_factory_load_file_icon (ThunarIconFactory  *factory,
           if (G_IS_THEMED_ICON (gicon))
             {
               /* we have a themed preview icon, look it up using the icon theme */
-              icon_info = 
-                gtk_icon_theme_lookup_by_gicon (factory->icon_theme, 
-                                                gicon, icon_size, 
+              icon_info =
+                gtk_icon_theme_lookup_by_gicon (factory->icon_theme,
+                                                gicon, icon_size,
                                                 GTK_ICON_LOOKUP_USE_BUILTIN
                                                 | GTK_ICON_LOOKUP_FORCE_SIZE);
 
@@ -844,7 +848,7 @@ thunar_icon_factory_load_file_icon (ThunarIconFactory  *factory,
                 {
                   /* try to load the pixbuf from the icon info */
                   icon = gtk_icon_info_load_icon (icon_info, NULL);
-                  gtk_icon_info_free (icon_info);
+                  g_object_unref (icon_info);
                 }
             }
           else if (G_IS_LOADABLE_ICON (gicon))

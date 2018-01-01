@@ -25,7 +25,18 @@
 #include <thunarx/thunarx-private.h>
 #include <thunarx/thunarx-property-page-provider.h>
 
-
+/**
+ * SECTION: thunarx-property-page-provider
+ * @short_description: The interface to extensions that provide additional property pages
+ * @title: ThunarxPropertyPageProvider
+ * @include: thunarx/thunarx.h
+ *
+ * To add a property page to the file properties dialog, extensions must implement the
+ * <type>ThunarxPropertyPageProvider</type> interface. This interface has only one virtual
+ * method, <function>get_pages</function>, that is passed a list of <link
+ * linkend="ThunarxFileInfo"><type>ThunarxFileInfo</type></link> objects and returns a list
+ * of <link linkend="ThunarxPropertyPage"><type>ThunarxPropertyPage</type></link> objects.
+ */
 
 GType
 thunarx_property_page_provider_get_type (void)
@@ -54,9 +65,10 @@ thunarx_property_page_provider_get_type (void)
 
 
 /**
- * thunarx_property_page_provider_get_pages:
- * @provider : a #ThunarxPropertyPageProvider.
- * @files    : the list of #ThunarxFileInfo<!---->s for which a properties dialog will be displayed.
+ * thunarx_property_page_provider_get_pages: (skip)
+ * @provider: a #ThunarxPropertyPageProvider.
+ * @files: (element-type ThunarxFileInfo): the list of #ThunarxFileInfo<!---->s
+ *         for which a properties dialog will be displayed.
  *
  * Returns the list of #ThunarxPropertyPage<!---->s that @provider has to offer for @files.
  *
@@ -97,8 +109,8 @@ thunarx_property_page_provider_get_type (void)
  * g_list_free_full (list, g_object_unref);
  * </programlisting></informalexample>
  *
- * Return value: the list of #ThunarxPropertyPage<!---->s that @provider has to offer
- *               for @files.
+ * Returns: (transfer full) (element-type ThunarxPropertyPage): the list of
+ *          #ThunarxPropertyPage<!---->s that @provider has to offer for @files.
  **/
 GList*
 thunarx_property_page_provider_get_pages (ThunarxPropertyPageProvider *provider,

@@ -3,18 +3,18 @@
  * Copyright (c) 2005-2006 Benedikt Meurer <benny@xfce.org>
  * Copyright (c) 2011 Jannis Pohlmann <jannis@xfce.org>
  *
- * This program is free software; you can redistribute it and/or 
+ * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of 
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public 
- * License along with this program; if not, write to the Free 
+ * You should have received a copy of the GNU General Public
+ * License along with this program; if not, write to the Free
  * Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  * Boston, MA 02110-1301, USA.
  */
@@ -90,11 +90,14 @@ thunar_statusbar_class_init (ThunarStatusbarClass *klass)
 
   if (!style_initialized)
     {
-      gtk_rc_parse_string ("style \"thunar-statusbar-internal\" {\n"
-                           "  GtkStatusbar::shadow-type = GTK_SHADOW_NONE\n"
-                           "}\n"
-                           "class \"ThunarStatusbar\" "
-                           "style \"thunar-statusbar-internal\"\n");
+    	  gtk_widget_class_install_style_property (GTK_WIDGET_CLASS (gobject_class),
+          g_param_spec_enum (
+	          "shadow-type",                //name
+	          "shadow-type",                //nick
+	          "type of shadow",             //blurb
+	          gtk_shadow_type_get_type(),   //type
+	          GTK_SHADOW_NONE,              //default
+	          G_PARAM_READWRITE ));         //flags
     }
 }
 
@@ -104,7 +107,10 @@ static void
 thunar_statusbar_init (ThunarStatusbar *statusbar)
 {
   statusbar->context_id = gtk_statusbar_get_context_id (GTK_STATUSBAR (statusbar), "Main text");
-  gtk_statusbar_set_has_resize_grip (GTK_STATUSBAR (statusbar), TRUE);
+
+  /* make the status thinner */
+  gtk_widget_set_margin_top (GTK_WIDGET (statusbar), 0);
+  gtk_widget_set_margin_bottom (GTK_WIDGET (statusbar), 0);
 }
 
 

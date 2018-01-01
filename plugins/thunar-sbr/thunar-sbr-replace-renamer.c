@@ -182,7 +182,7 @@ thunar_sbr_replace_renamer_init (ThunarSbrReplaceRenamer *replace_renamer)
   AtkRelationSet *relations;
   AtkRelation    *relation;
   AtkObject      *object;
-  GtkWidget      *table;
+  GtkWidget      *grid;
   GtkWidget      *label;
   GtkWidget      *entry;
   GtkWidget      *button;
@@ -193,22 +193,23 @@ thunar_sbr_replace_renamer_init (ThunarSbrReplaceRenamer *replace_renamer)
     replace_renamer->regexp_supported = FALSE;
 #endif
 
-  table = gtk_table_new (2, 3, FALSE);
-  gtk_table_set_row_spacings (GTK_TABLE (table), 6);
-  gtk_table_set_col_spacings (GTK_TABLE (table), 12);
-  gtk_box_pack_start (GTK_BOX (replace_renamer), table, FALSE, FALSE, 0);
-  gtk_widget_show (table);
+  grid = gtk_grid_new ();
+  gtk_grid_set_column_spacing (GTK_GRID (grid), 12);
+  gtk_grid_set_row_spacing (GTK_GRID (grid), 6);
+  gtk_box_pack_start (GTK_BOX (replace_renamer), grid, FALSE, FALSE, 0);
+  gtk_widget_show (grid);
 
   label = gtk_label_new_with_mnemonic (_("_Search For:"));
-  gtk_misc_set_alignment (GTK_MISC (label), 0.0f, 0.5f);
-  gtk_table_attach (GTK_TABLE (table), label, 0, 1, 0, 1, GTK_FILL, 0, 0, 0);
+  gtk_label_set_xalign (GTK_LABEL (label), 1.0f);
+  gtk_grid_attach (GTK_GRID (grid), label, 0, 0, 1, 1);
   gtk_widget_show (label);
 
   replace_renamer->pattern_entry = gtk_entry_new ();
   gtk_entry_set_activates_default (GTK_ENTRY (replace_renamer->pattern_entry), TRUE);
   exo_mutual_binding_new (G_OBJECT (replace_renamer->pattern_entry), "text", G_OBJECT (replace_renamer), "pattern");
   gtk_widget_set_tooltip_text (replace_renamer->pattern_entry, _("Enter the text to search for in the file names."));
-  gtk_table_attach (GTK_TABLE (table), replace_renamer->pattern_entry, 1, 2, 0, 1, GTK_EXPAND | GTK_FILL, 0, 0, 0);
+  gtk_widget_set_hexpand (replace_renamer->pattern_entry, TRUE);
+  gtk_grid_attach (GTK_GRID (grid), replace_renamer->pattern_entry, 1, 0, 1, 1);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label), replace_renamer->pattern_entry);
   gtk_widget_show (replace_renamer->pattern_entry);
 
@@ -224,20 +225,21 @@ thunar_sbr_replace_renamer_init (ThunarSbrReplaceRenamer *replace_renamer)
   gtk_widget_set_tooltip_text (button, _("If you enable this option, the pattern will be treated as a regular expression and "
                                          "matched using the Perl-compatible regular expressions (PCRE). Check the documentation "
                                          "for details about the regular expression syntax."));
-  gtk_table_attach (GTK_TABLE (table), button, 2, 3, 0, 1, GTK_FILL, 0, 0, 0);
+  gtk_grid_attach (GTK_GRID (grid), button, 2, 0, 1, 1);
   gtk_widget_set_sensitive (button, replace_renamer->regexp_supported);
   gtk_widget_show (button);
 
   label = gtk_label_new_with_mnemonic (_("Replace _With:"));
-  gtk_misc_set_alignment (GTK_MISC (label), 0.0f, 0.5f);
-  gtk_table_attach (GTK_TABLE (table), label, 0, 1, 1, 2, GTK_FILL, 0, 0, 0);
+  gtk_label_set_xalign (GTK_LABEL (label), 0.0f);
+  gtk_grid_attach (GTK_GRID (grid), label, 0, 1, 1, 1);
   gtk_widget_show (label);
 
   entry = gtk_entry_new ();
   gtk_entry_set_activates_default (GTK_ENTRY (entry), TRUE);
   exo_mutual_binding_new (G_OBJECT (entry), "text", G_OBJECT (replace_renamer), "replacement");
   gtk_widget_set_tooltip_text (entry, _("Enter the text that should be used as replacement for the pattern above."));
-  gtk_table_attach (GTK_TABLE (table), entry, 1, 2, 1, 2, GTK_EXPAND | GTK_FILL, 0, 0, 0);
+  gtk_widget_set_hexpand (entry, TRUE);
+  gtk_grid_attach (GTK_GRID (grid), entry, 1, 1, 1, 1);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label), entry);
   gtk_widget_show (entry);
 
@@ -252,7 +254,7 @@ thunar_sbr_replace_renamer_init (ThunarSbrReplaceRenamer *replace_renamer)
   exo_mutual_binding_new (G_OBJECT (button), "active", G_OBJECT (replace_renamer), "case-sensitive");
   gtk_widget_set_tooltip_text (button, _("If you enable this option, the pattern will be searched in a case-sensitive manner. "
                                          "The default is to use a case-insensitive search."));
-  gtk_table_attach (GTK_TABLE (table), button, 2, 3, 1, 2, GTK_FILL, 0, 0, 0);
+  gtk_grid_attach (GTK_GRID (grid), button, 2, 1, 1, 1);
   gtk_widget_show (button);
 }
 
@@ -567,8 +569,6 @@ static void
 thunar_sbr_replace_renamer_pcre_update (ThunarSbrReplaceRenamer *replace_renamer)
 {
   const gchar *error_message = NULL;
-  GdkColor     back;
-  GdkColor     text;
   gchar       *tooltip;
   gchar       *message;
   glong        offset;
@@ -616,26 +616,17 @@ thunar_sbr_replace_renamer_pcre_update (ThunarSbrReplaceRenamer *replace_renamer
       /* check if the entry is realized */
       if (gtk_widget_get_realized (replace_renamer->pattern_entry))
         {
-          /* if GTK+ wouldn't be that stupid with style properties and 
-           * type plugins, this would be themable, but unfortunately
-           * GTK+ is totally broken, and so it's hardcoded.
-           */
-          gdk_color_parse ("#ff6666", &back);
-          gdk_color_parse ("White", &text);
-
-          /* setup a red background/text color to indicate the error */
-          gtk_widget_modify_base (replace_renamer->pattern_entry, GTK_STATE_NORMAL, &back);
-          gtk_widget_modify_text (replace_renamer->pattern_entry, GTK_STATE_NORMAL, &text);
+          /* highlight invalid input by using theme-specific colors */
+          gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (replace_renamer->pattern_entry)), "error");
         }
     }
   else
     {
       /* check if the entry is realized */
-      if (GTK_WIDGET_REALIZED (replace_renamer->pattern_entry))
+      if (gtk_widget_get_realized (replace_renamer->pattern_entry))
         {
-          /* reset background/text color */
-          gtk_widget_modify_base (replace_renamer->pattern_entry, GTK_STATE_NORMAL, NULL);
-          gtk_widget_modify_text (replace_renamer->pattern_entry, GTK_STATE_NORMAL, NULL);
+          /* stop highlight of invalid input if any */
+          gtk_style_context_remove_class (gtk_widget_get_style_context (GTK_WIDGET (replace_renamer->pattern_entry)), "error");
         }
 
       /* reset to default tooltip */

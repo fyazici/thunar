@@ -12,7 +12,6 @@ thunar/thunar-column-model.c
 thunar/thunar-compact-view.c
 thunar/thunar-component.c
 thunar/thunar-create-dialog.c
-thunar/thunar-dbus-client.c
 thunar/thunar-dbus-service.c
 thunar/thunar-deep-count-job.c
 thunar/thunar-details-view.c
@@ -46,7 +45,6 @@ thunar/thunar-list-model.c
 thunar/thunar-location-bar.c
 thunar/thunar-location-button.c
 thunar/thunar-location-buttons.c
-thunar/thunar-location-dialog.c
 thunar/thunar-location-entry.c
 thunar/thunar-notify.c
 thunar/thunar-misc-jobs.c
@@ -76,7 +74,6 @@ thunar/thunar-standard-view.c
 thunar/thunar-statusbar.c
 thunar/thunar-stock.c
 thunar/thunar-templates-action.c
-thunar/thunar-text-renderer.c
 thunar/thunar-thumbnail-cache.c
 thunar/thunar-thumbnailer.c
 thunar/thunar-transfer-job.c
@@ -122,6 +119,8 @@ plugins/thunar-uca/thunar-uca-model.c
 plugins/thunar-uca/thunar-uca-plugin.c
 plugins/thunar-uca/thunar-uca-provider.c
 plugins/thunar-uca/uca.xml.in
+[type: gettext/glade]plugins/thunar-uca/thunar-uca-editor.ui
+[type: gettext/glade]plugins/thunar-uca/thunar-uca-chooser.ui
 
 plugins/thunar-wallpaper/twp-provider.c
 

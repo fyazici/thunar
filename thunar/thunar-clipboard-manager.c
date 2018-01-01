@@ -3,18 +3,18 @@
  * Copyright (c) 2005-2006 Benedikt Meurer <benny@xfce.org>
  * Copyright (c) 2009-2011 Jannis Pohlmann <jannis@xfce.org>
  *
- * This program is free software; you can redistribute it and/or 
+ * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of 
+ * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public 
- * License along with this program; if not, write to the Free 
+ * You should have received a copy of the GNU General Public
+ * License along with this program; if not, write to the Free
  * Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  * Boston, MA 02110-1301, USA.
  */
@@ -301,11 +301,11 @@ thunar_clipboard_manager_contents_received (GtkClipboard     *clipboard,
   gchar                       *data;
 
   /* check whether the retrieval worked */
-  if (G_LIKELY (selection_data->length > 0))
+  if (G_LIKELY (gtk_selection_data_get_length (selection_data) > 0))
     {
       /* be sure the selection data is zero-terminated */
-      data = (gchar *) selection_data->data;
-      data[selection_data->length] = '\0';
+      data = (gchar *) gtk_selection_data_get_data (selection_data);
+      data[gtk_selection_data_get_length (selection_data)] = '\0';
 
       /* check whether to copy or move */
       if (g_ascii_strncasecmp (data, "copy\n", 5) == 0)
@@ -341,7 +341,7 @@ thunar_clipboard_manager_contents_received (GtkClipboard     *clipboard,
       if (G_UNLIKELY (!path_copy))
         gtk_clipboard_clear (manager->clipboard);
 
-      /* check the contents of the clipboard again if either the Xserver or 
+      /* check the contents of the clipboard again if either the Xserver or
        * our GTK+ version doesn't support the XFixes extension */
       if (!gdk_display_supports_selection_notification (gtk_clipboard_get_display (manager->clipboard)))
         {
@@ -472,7 +472,7 @@ thunar_clipboard_manager_get_callback (GtkClipboard     *clipboard,
     case TARGET_GNOME_COPIED_FILES:
       prefix = manager->files_cutted ? "cut\n" : "copy\n";
       str = thunar_clipboard_manager_g_file_list_to_string (file_list, prefix, FALSE, &len);
-      gtk_selection_data_set (selection_data, selection_data->target, 8, (guchar *) str, len);
+      gtk_selection_data_set (selection_data, gtk_selection_data_get_target (selection_data), 8, (guchar *) str, len);
       g_free (str);
       break;
 

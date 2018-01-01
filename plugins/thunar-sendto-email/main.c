@@ -193,9 +193,9 @@ tse_ask_compress (GList *infos)
           /* ask the user whether to compress the file */
           tse_data = (TseData *) infos->data;
           message = gtk_message_dialog_new (NULL, 0, GTK_MESSAGE_QUESTION, GTK_BUTTONS_NONE,
-                                            _("Send \"%s\" as compressed archive?"), 
+                                            _("Send \"%s\" as compressed archive?"),
                                             g_file_info_get_display_name (tse_data->info));
-          gtk_dialog_add_button (GTK_DIALOG (message), GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
+          gtk_dialog_add_button (GTK_DIALOG (message), _("_Cancel"), GTK_RESPONSE_CANCEL);
           gtk_dialog_add_button (GTK_DIALOG (message), _("Send _directly"), TSE_RESPONSE_PLAIN);
           gtk_dialog_add_button (GTK_DIALOG (message), _("Send com_pressed"), TSE_RESPONSE_COMPRESS);
           gtk_dialog_set_default_response (GTK_DIALOG (message), TSE_RESPONSE_COMPRESS);
@@ -214,7 +214,7 @@ tse_ask_compress (GList *infos)
                                                       "Send %d files as compressed archive?",
                                                       n_infos),
                                             n_infos);
-          gtk_dialog_add_button (GTK_DIALOG (message), GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
+          gtk_dialog_add_button (GTK_DIALOG (message), _("_Cancel"), GTK_RESPONSE_CANCEL);
           gtk_dialog_add_button (GTK_DIALOG (message), _("Send _directly"), TSE_RESPONSE_PLAIN);
           gtk_dialog_add_button (GTK_DIALOG (message), _("Send as _archive"), TSE_RESPONSE_COMPRESS);
           gtk_dialog_set_default_response (GTK_DIALOG (message), TSE_RESPONSE_COMPRESS);
@@ -268,32 +268,33 @@ tse_progress (const gchar *working_directory,
 
   /* allocate the progress dialog */
   dialog = gtk_dialog_new_with_buttons (_("Compressing files..."),
-                                        NULL, GTK_DIALOG_NO_SEPARATOR,
-                                        GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+                                        NULL, 0,
+                                        _("_Cancel"), GTK_RESPONSE_CANCEL,
                                         NULL);
   gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_CANCEL);
   gtk_window_set_default_size (GTK_WINDOW (dialog), 300, -1);
 
   /* setup the hbox */
-  hbox = gtk_hbox_new (FALSE, 12);
+  hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
   gtk_container_set_border_width (GTK_CONTAINER (hbox), 8);
-  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), hbox, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), hbox, TRUE, TRUE, 0);
   gtk_widget_show (hbox);
-  
+
   /* setup the image */
   image = gtk_image_new_from_icon_name ("gnome-package", GTK_ICON_SIZE_DIALOG);
-  gtk_misc_set_alignment (GTK_MISC (image), 0.5f, 0.0f);
+  gtk_widget_set_halign (image, GTK_ALIGN_CENTER);
+  gtk_widget_set_valign (image, GTK_ALIGN_START);
   gtk_box_pack_start (GTK_BOX (hbox), image, FALSE, FALSE, 0);
   gtk_widget_show (image);
 
   /* setup the vbox */
-  vbox = gtk_vbox_new (FALSE, 12);
+  vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 12);
   gtk_box_pack_start (GTK_BOX (hbox), vbox, TRUE, TRUE, 0);
   gtk_widget_show (vbox);
 
   /* setup the label */
   label = gtk_label_new (_("Compressing files..."));
-  gtk_misc_set_alignment (GTK_MISC (label), 0.0f, 0.5f);
+  gtk_label_set_xalign (GTK_LABEL (label), 0.0f);
   gtk_box_pack_start (GTK_BOX (vbox), label, FALSE, FALSE, 0);
   gtk_widget_show (label);
 
@@ -428,7 +429,7 @@ tse_compress (GList  *infos,
       tse_data = (TseData *) infos->data;
       parent = g_file_get_parent (tse_data->file);
 
-      /* we assume the parent exists because we only allow non-root 
+      /* we assume the parent exists because we only allow non-root
        * files as TseData in main () */
       g_assert (parent != NULL);
 
@@ -593,10 +594,10 @@ main (int argc, char **argv)
         }
 
       /* try to determine the info */
-      info = g_file_query_info (file, 
+      info = g_file_query_info (file,
                                 G_FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME ","
                                 G_FILE_ATTRIBUTE_STANDARD_SIZE ","
-                                G_FILE_ATTRIBUTE_STANDARD_TYPE, 
+                                G_FILE_ATTRIBUTE_STANDARD_TYPE,
                                 G_FILE_QUERY_INFO_NONE, NULL, &error);
 
       /* check if we failed */

@@ -99,7 +99,7 @@ struct _ThunarSizeLabel
 
 
 
-G_DEFINE_TYPE (ThunarSizeLabel, thunar_size_label, GTK_TYPE_HBOX)
+G_DEFINE_TYPE (ThunarSizeLabel, thunar_size_label, GTK_TYPE_BOX)
 
 
 
@@ -146,6 +146,8 @@ thunar_size_label_init (ThunarSizeLabel *size_label)
 {
   GtkWidget *ebox;
 
+  gtk_orientable_set_orientation (GTK_ORIENTABLE (size_label), GTK_ORIENTATION_HORIZONTAL);
+
   /* binary file size */
   size_label->preferences = thunar_preferences_get ();
   exo_binding_new (G_OBJECT (size_label->preferences), "misc-file-size-binary",
@@ -172,7 +174,7 @@ thunar_size_label_init (ThunarSizeLabel *size_label)
 
   /* add the label widget */
   size_label->label = gtk_label_new (_("Calculating..."));
-  gtk_misc_set_alignment (GTK_MISC (size_label->label), 0.0f, 0.5f);
+  gtk_label_set_xalign (GTK_LABEL (size_label->label), 0.0f);
   gtk_label_set_selectable (GTK_LABEL (size_label->label), TRUE);
   gtk_label_set_ellipsize (GTK_LABEL (size_label->label), PANGO_ELLIPSIZE_MIDDLE);
   gtk_box_pack_start (GTK_BOX (size_label), size_label->label, TRUE, TRUE, 0);
@@ -412,7 +414,7 @@ thunar_size_label_status_update (ThunarDeepCountJob *job,
       size_string = g_format_size_full (total_size, size_label->file_size_binary ? G_FORMAT_SIZE_IEC_UNITS : G_FORMAT_SIZE_DEFAULT);
       text = g_strdup_printf (ngettext ("%u item, totalling %s", "%u items, totalling %s", n), n, size_string);
       g_free (size_string);
-      
+
       if (unreadable_directory_count > 0)
         {
           /* TRANSLATORS: this is shows if during the deep count size
@@ -421,7 +423,7 @@ thunar_size_label_status_update (ThunarDeepCountJob *job,
           g_free (text);
           text = unreable_text;
         }
-      
+
       gtk_label_set_text (GTK_LABEL (size_label->label), text);
       g_free (text);
     }

@@ -78,13 +78,11 @@ appdatadir = $(datadir)/appdata
 appdata_DATA = $(appdata_in_files:.xml.in=.xml)
 appdata_in_files = thunar.appdata.xml.in
 
-if HAVE_DBUS
 servicedir = $(datadir)/dbus-1/services
 service_in_files = org.xfce.FileManager.service.in org.xfce.Thunar.service.in
 service_DATA = $(service_in_files:.service.in=.service)
 %.service: %.service.in
 	$(AM_V_GEN) $(SED) -e "s,\@bindir\@,$(bindir),g" < $< > $@
-endif
 
 polkit_policydir = $(datadir)/polkit-1/actions
 polkit_in_in_files =			\
@@ -105,7 +103,8 @@ EXTRA_DIST =								\
 	$(desktop_in_in_files)						\
 	$(service_in_files)						\
 	$(appdata_in_files)						\
-	$(polkit_in_in_files)
+	$(polkit_in_in_files)					\
+	m4/introspection.m4
 
 CLEANFILES		= $(appdata_DATA)
 
@@ -121,5 +120,6 @@ DISTCLEANFILES =							\
 	$(polkit_policy_DATA)
 
 DISTCHECK_CONFIGURE_FLAGS =						\
-	--enable-gtk-doc						\
-	--enable-gen-doc
+	--enable-gtk-doc							\
+	--enable-gen-doc							\
+	--enable-introspection

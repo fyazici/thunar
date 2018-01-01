@@ -4,13 +4,13 @@ AUTOMAKE_OPTIONS = 1.8
 DOC_MODULE=thunarx
 
 # The top-level SGML file.
-DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.sgml
+DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.xml
 
 # Extra options to supply to gtkdoc-scan
 SCAN_OPTIONS=--deprecated-guards="EXO_DISABLE_DEPRECATED"
 
 # Extra options to pass to gtkdoc-scangobj
-SCANGOBJ_OPTIONS=--type-init-func="gtk_type_init(0);g_type_class_ref(G_TYPE_OBJECT)"
+SCANGOBJ_OPTIONS=
 
 # The directory containing the source code. Relative to $(srcdir)
 DOC_SOURCE_DIR=../../../thunarx

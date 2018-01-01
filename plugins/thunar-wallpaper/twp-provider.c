@@ -43,10 +43,10 @@
 
 static void   twp_menu_provider_init            (ThunarxMenuProviderIface *iface);
 static void   twp_provider_finalize             (GObject                  *object);
-static GList *twp_provider_get_file_actions     (ThunarxMenuProvider      *menu_provider,
+static GList *twp_provider_get_file_menu_items  (ThunarxMenuProvider      *menu_provider,
                                                  GtkWidget                *window,
                                                  GList                    *files);
-static void   twp_action_set_wallpaper          (GtkAction                *action,
+static void   twp_action_set_wallpaper          (ThunarxMenuItem          *item,
                                                  gpointer                  user_data);
 static gint   twp_get_active_workspace_number   (GdkScreen *screen);
 
@@ -87,7 +87,7 @@ THUNARX_DEFINE_TYPE_WITH_CODE (TwpProvider, twp_provider, G_TYPE_OBJECT,
 static void
 twp_menu_provider_init (ThunarxMenuProviderIface *iface)
 {
-  iface->get_file_actions = twp_provider_get_file_actions;
+  iface->get_file_menu_items = twp_provider_get_file_menu_items;
 }
 
 
@@ -125,19 +125,19 @@ twp_provider_finalize (GObject *object)
 
 
 static GList*
-twp_provider_get_file_actions (ThunarxMenuProvider *menu_provider,
-                               GtkWidget           *window,
-                               GList               *files)
+twp_provider_get_file_menu_items (ThunarxMenuProvider *menu_provider,
+                                  GtkWidget           *window,
+                                  GList               *files)
 {
-  GtkWidget *action = NULL;
-  GFile     *location;
-  GList     *actions = NULL;
-  gchar     *mime_type;
-  gchar      selection_name[100];
-  Atom       xfce_selection_atom;
-  Atom       nautilus_selection_atom;
-  GdkScreen *gdk_screen = gdk_screen_get_default();
-  gint       xscreen = gdk_screen_get_number(gdk_screen);
+  ThunarxMenuItem *item = NULL;
+  GFile           *location;
+  GList           *items = NULL;
+  gchar           *mime_type;
+  gchar            selection_name[100];
+  Atom             xfce_selection_atom;
+  Atom             nautilus_selection_atom;
+  GdkScreen       *gdk_screen = gdk_screen_get_default();
+  gint             xscreen = gdk_screen_get_number(gdk_screen);
 
   desktop_type = DESKTOP_TYPE_NONE;
 
@@ -168,23 +168,19 @@ twp_provider_get_file_actions (ThunarxMenuProvider *menu_provider,
                   || thunarx_file_info_has_mime_type (files->data, "image/svg+xml")
                   || thunarx_file_info_has_mime_type (files->data, "image/svg+xml-compressed")))
             {
-              action = g_object_new (GTK_TYPE_ACTION,
-                                     "name", "Twp::setwallpaper",
-                                     "icon-name", "preferences-desktop-wallpaper",
-                                     "label", _("Set as wallpaper"),
-                                     NULL);
-              g_signal_connect (action, "activate", G_CALLBACK (twp_action_set_wallpaper), files->data);
+              item = thunarx_menu_item_new ("Twp::setwallpaper", _("Set as wallpaper"), NULL, "preferences-desktop-wallpaper");
+              g_signal_connect (item, "activate", G_CALLBACK (twp_action_set_wallpaper), files->data);
 
-              actions = g_list_append (actions, action);
+              items = g_list_append (items, item);
             }
           g_free(mime_type);
         }
     }
 
   g_snprintf(selection_name, 100, XFDESKTOP_SELECTION_FMT, xscreen);
-  xfce_selection_atom = XInternAtom (gdk_display, selection_name, False);
+  xfce_selection_atom = XInternAtom (gdk_x11_get_default_xdisplay(), selection_name, False);
 
-  if ((XGetSelectionOwner(GDK_DISPLAY(), xfce_selection_atom)))
+  if ((XGetSelectionOwner(gdk_x11_get_default_xdisplay(), xfce_selection_atom)))
     {
         desktop_type = DESKTOP_TYPE_XFCE;
     }
@@ -192,25 +188,20 @@ twp_provider_get_file_actions (ThunarxMenuProvider *menu_provider,
     {
       /* FIXME: This is wrong, nautilus WINDOW_ID is not a selection */
       g_snprintf(selection_name, 100, NAUTILUS_SELECTION_FMT);
-      nautilus_selection_atom = XInternAtom (gdk_display, selection_name, False);
-      if((XGetSelectionOwner(GDK_DISPLAY(), nautilus_selection_atom)))
+      nautilus_selection_atom = XInternAtom (gdk_x11_get_default_xdisplay(), selection_name, False);
+      if((XGetSelectionOwner(gdk_x11_get_default_xdisplay(), nautilus_selection_atom)))
       {
           if (_has_gconftool)
               desktop_type = DESKTOP_TYPE_NAUTILUS;
       }
     }
 
-  if ((desktop_type == DESKTOP_TYPE_NONE) && (action != NULL))
-    {
-        /* gtk_widget_set_sensitive (action, FALSE); */
-    }
-
-  return actions;
+  return items;
 }
 
 static void
-twp_action_set_wallpaper (GtkAction *action,
-                          gpointer   user_data)
+twp_action_set_wallpaper (ThunarxMenuItem *item,
+                          gpointer         user_data)
 {
   ThunarxFileInfo *file_info = user_data;
   GdkDisplay      *display = gdk_display_get_default();

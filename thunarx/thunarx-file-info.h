@@ -30,12 +30,12 @@
 
 #include <thunarx/thunarx-config.h>
 
-G_BEGIN_DECLS;
+G_BEGIN_DECLS
 
-/**
- * File information namespaces available in the #GFileInfo returned by 
+/*
+ * File information namespaces available in the #GFileInfo returned by
  * thunarx_file_info_get_file_info().
- **/
+ */
 #define THUNARX_FILE_INFO_NAMESPACE \
   "access::*," \
   "id::filesystem," \
@@ -51,10 +51,10 @@ G_BEGIN_DECLS;
 
 
 
-/**
+/*
  * Filesystem information namespaces available in the #GFileInfo
  * returned by thunarx_file_info_get_filesystem_info().
- **/
+ */
 #define THUNARX_FILESYSTEM_INFO_NAMESPACE \
   "filesystem::*"
 
@@ -65,6 +65,25 @@ typedef struct _ThunarxFileInfo      ThunarxFileInfo;
 #define THUNARX_FILE_INFO(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), THUNARX_TYPE_FILE_INFO, ThunarxFileInfo))
 #define THUNARX_IS_FILE_INFO(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), THUNARX_TYPE_FILE_INFO))
 #define THUNARX_FILE_INFO_GET_IFACE(obj)  (G_TYPE_INSTANCE_GET_INTERFACE ((obj), THUNARX_TYPE_FILE_INFO, ThunarxFileInfoIface))
+
+/**
+ * ThunarxFileInfoIface:
+ * @get_name: See thunarx_file_info_get_name().
+ * @get_uri: See thunarx_file_info_get_uri().
+ * @get_parent_uri: See thunarx_file_info_get_parent_uri().
+ * @get_uri_scheme: See thunarx_file_info_get_uri_scheme().
+ * @get_mime_type: See thunarx_file_info_get_mime_type().
+ * @has_mime_type: See thunarx_file_info_has_mime_type().
+ * @is_directory: See thunarx_file_info_is_directory().
+ * @get_file_info: See thunarx_file_info_get_file_info().
+ * @get_filesystem_info: See thunarx_filesystem_info_get_filesystem_info().
+ * @get_location: See thunarx_location_get_location().
+ * @changed: See thunarx_file_info_changed().
+ * @renamed: See thunarx_file_info_renamed().
+ *
+ * Interface with virtual methods implemented by the file manager and accessible
+ * from the extensions.
+ */
 
 struct _ThunarxFileInfoIface
 {
@@ -139,6 +158,6 @@ GType      thunarx_file_info_list_get_type       (void) G_GNUC_CONST;
 GList     *thunarx_file_info_list_copy           (GList           *file_infos);
 void       thunarx_file_info_list_free           (GList           *file_infos);
 
-G_END_DECLS;
+G_END_DECLS
 
 #endif /* !__THUNARX_FILE_INFO_H__ */

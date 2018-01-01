@@ -237,6 +237,11 @@ thunar_g_file_get_display_name (GFile *file)
           display_name = g_strdup (_("File System"));
           g_free (base_name);
         }
+      else if (strcmp (base_name, "Trash") == 0)
+        {
+          display_name = g_strdup (_("Trash"));
+          g_free (base_name);
+        }
       else if (g_utf8_validate (base_name, -1, NULL))
        {
          display_name = base_name;
@@ -512,7 +517,19 @@ thunar_g_file_list_to_stringv (GList *list)
   uris = g_new0 (gchar *, g_list_length (list) + 1);
 
   for (lp = list, n = 0; lp != NULL; lp = lp->next)
-    uris[n++] = g_file_get_uri (G_FILE (lp->data));
+    {
+      /* Prefer native paths for interoperability. */
+      gchar *path = g_file_get_path (G_FILE (lp->data));
+      if (path == NULL)
+        {
+          uris[n++] = g_file_get_uri (G_FILE (lp->data));
+        }
+      else
+        {
+          uris[n++] = g_filename_to_uri (path, NULL, NULL);
+          g_free(path);
+        }
+    }
 
   return uris;
 }

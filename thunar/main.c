@@ -36,8 +36,6 @@
 #include <xfconf/xfconf.h>
 
 #include <thunar/thunar-application.h>
-#include <thunar/thunar-dbus-client.h>
-#include <thunar/thunar-dbus-service.h>
 #include <thunar/thunar-gobject-extensions.h>
 #include <thunar/thunar-private.h>
 #include <thunar/thunar-notify.h>
@@ -47,63 +45,70 @@
 
 
 
-/* --- globals --- */
-static gboolean opt_bulk_rename = FALSE;
-static gboolean opt_daemon = FALSE;
-static gchar   *opt_sm_client_id = NULL;
-static gboolean opt_quit = FALSE;
-static gboolean opt_version = FALSE;
-
-
-
-/* --- command line options --- */
-static GOptionEntry option_entries[] =
+static void
+thunar_terminate_running_thunar (void)
 {
-  { "bulk-rename", 'B', 0, G_OPTION_ARG_NONE, &opt_bulk_rename, N_ ("Open the bulk rename dialog"), NULL, },
-#ifdef HAVE_DBUS
-  { "daemon", 0, 0, G_OPTION_ARG_NONE, &opt_daemon, N_ ("Run in daemon mode"), NULL, },
-#else
-  { "daemon", 0, 0, G_OPTION_ARG_NONE, &opt_daemon, N_ ("Run in daemon mode (not supported)"), NULL, },
-#endif
-  { "sm-client-id", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_STRING, &opt_sm_client_id, NULL, NULL, },
-#ifdef HAVE_DBUS
-  { "quit", 'q', 0, G_OPTION_ARG_NONE, &opt_quit, N_ ("Quit a running Thunar instance"), NULL, },
-#else
-  { "quit", 'q', 0, G_OPTION_ARG_NONE, &opt_quit, N_ ("Quit a running Thunar instance (not supported)"), NULL, },
-#endif
-  { "version", 'V', 0, G_OPTION_ARG_NONE, &opt_version, N_ ("Print version information and exit"), NULL, },
-  { NULL, },
-};
+  GDBusConnection *connection;
+  GDBusProxy      *proxy;
+  GError          *error;
+
+  error = NULL;
+  connection = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, &error);
+  g_assert_no_error (error);
+  proxy = g_dbus_proxy_new_sync (connection,
+                                 G_DBUS_PROXY_FLAGS_NONE,
+                                 NULL,
+                                 "org.xfce.Thunar",       /* bus name */
+                                 "/org/xfce/FileManager", /* object path */
+                                 "org.xfce.Thunar",       /* interface name */
+                                 NULL,
+                                 &error);
+  g_assert_no_error (error);
+  g_dbus_proxy_call_sync (proxy,
+                          "Terminate",                    /* method name */
+                          NULL,
+                          G_DBUS_CALL_FLAGS_NONE,
+                          -1,
+                          NULL,
+                          &error);
+  g_assert_no_error (error);
+  g_object_unref (proxy);
+  g_object_unref (connection);
+}
 
 
 
-static gboolean
-thunar_delayed_exit_check (gpointer user_data)
+static void
+thunar_dialog_ask_terminate_old_daemon_activate (GtkApplication* app, gpointer user_data)
 {
-  ThunarApplication *application = user_data;
+  GtkWidget *window;
+  GtkWidget *dialog;
+  gint       result;
 
-  _thunar_return_val_if_fail (THUNAR_IS_APPLICATION (application), FALSE);
+  window = gtk_application_window_new (app);
+  dialog = gtk_message_dialog_new (GTK_WINDOW (window), GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO,
+          _("Thunar could not be launched because an older instance of thunar is still running.\n"
+            "Would you like to terminate the old thunar instance now?\n\n"
+            "Before accepting please make sure there are no pending operations (e.g. file copying) as terminating them may leave your files corrupted.\n\n"
+            "Please restart thunar afterwards."));
+  result = gtk_dialog_run (GTK_DIALOG (dialog));
+  if (result == GTK_RESPONSE_YES)
+    thunar_terminate_running_thunar ();
+  gtk_widget_destroy (window);
+  g_application_quit (G_APPLICATION (app));
+}
 
-  /* call this function again later if the application is still processing the
-   * command line arguments */
-  if (thunar_application_is_processing (application))
-    return TRUE;
 
-  /* the application has processed all command line arguments. don't call
-   * this function again if it could load at least one of them */
-  if (thunar_application_has_windows (application))
-    {
-      return FALSE;
-    }
-  else
-    {
-      /* no command line arguments opened in Thunar, exit now */
-      gtk_main_quit ();
 
-      /* don't call this function again */
-      return FALSE;
-    }
+static void
+thunar_dialog_ask_terminate_old_daemon (void)
+{
+  GtkApplication *app;
 
+  app = gtk_application_new ("terminate.old.thunar.daemon", G_APPLICATION_FLAGS_NONE);
+  g_signal_connect (app, "activate", G_CALLBACK (thunar_dialog_ask_terminate_old_daemon_activate), NULL);
+  g_application_run (G_APPLICATION (app), 0, 0);
+  g_object_unref (app);
 }
 
 
@@ -111,15 +116,8 @@ thunar_delayed_exit_check (gpointer user_data)
 int
 main (int argc, char **argv)
 {
-  ThunarSessionClient *session_client;
-#ifdef HAVE_DBUS
-  ThunarDBusService   *dbus_service = NULL;
-#endif
   ThunarApplication   *application;
   GError              *error = NULL;
-  gchar               *working_directory;
-  gchar              **filenames = NULL;
-  const gchar         *startup_id;
 
   /* setup translation domain */
   xfce_textdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR, "UTF-8");
@@ -133,46 +131,6 @@ main (int argc, char **argv)
    */
   g_log_set_always_fatal (G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING);
 #endif
-
-#if !GLIB_CHECK_VERSION (2, 32, 0)
-  /* initialize the GThread system */
-  if (!g_thread_supported ())
-    g_thread_init (NULL);
-#endif
-
-  /* get the startup notification id */
-  startup_id = g_getenv ("DESKTOP_STARTUP_ID");
-
-  /* initialize Gtk+ */
-  if (!gtk_init_with_args (&argc, &argv, _("[FILES...]"), option_entries, GETTEXT_PACKAGE, &error))
-    {
-      /* check if we have an error message */
-      if (G_LIKELY (error == NULL))
-        {
-          /* no error message, the GUI initialization failed */
-          const gchar *display_name = gdk_get_display_arg_name ();
-          g_printerr (_("Thunar: Failed to open display: %s\n"), (display_name != NULL) ? display_name : " ");
-        }
-      else
-        {
-          /* yep, there's an error, so print it */
-          g_printerr (_("Thunar: %s\n"), error->message);
-          g_error_free (error);
-        }
-      return EXIT_FAILURE;
-    }
-
-  /* check if we should print version information */
-  if (G_UNLIKELY (opt_version))
-    {
-      g_print ("%s %s (Xfce %s)\n\n", PACKAGE_NAME, PACKAGE_VERSION, xfce_version_string ());
-      g_print ("%s\n", "Copyright (c) 2004-2015");
-      g_print ("\t%s\n\n", _("The Thunar development team. All rights reserved."));
-      g_print ("%s\n\n", _("Written by Benedikt Meurer <benny@xfce.org>."));
-      g_print (_("Please report bugs to <%s>."), PACKAGE_BUGREPORT);
-      g_print ("\n");
-      return EXIT_SUCCESS;
-    }
 
   /* initialize xfconf */
   if (!xfconf_init (&error))
@@ -194,130 +152,27 @@ main (int argc, char **argv)
   /* register additional transformation functions */
   thunar_g_initialize_transformations ();
 
-#ifdef HAVE_DBUS
-  /* check if we should terminate a running Thunar instance */
-  if (G_UNLIKELY (opt_quit))
-    {
-      /* try to terminate whatever is running */
-      if (!thunar_dbus_client_terminate (&error))
-        {
-          g_printerr ("Thunar: Failed to terminate running instance: %s\n", error->message);
-          g_error_free (error);
-          return EXIT_FAILURE;
-        }
-
-      return EXIT_SUCCESS;
-    }
-#endif
-
-  /* determine the current working directory */
-  working_directory = g_get_current_dir ();
-
-  /* check if atleast one filename was specified, else
-   * fall back to opening the current working directory
-   * if daemon mode is not requested.
-   */
-  if (G_LIKELY (argc > 1))
-    {
-      /* use the specified filenames */
-      filenames = g_strdupv (argv + 1);
-    }
-  else if (opt_bulk_rename)
-    {
-      /* default to an empty list */
-      filenames = g_new (gchar *, 1);
-      filenames[0] = NULL;
-    }
-  else if (!opt_daemon)
-    {
-      /* use the current working directory */
-      filenames = g_new (gchar *, 2);
-      filenames[0] = g_strdup (working_directory);
-      filenames[1] = NULL;
-    }
-
-#ifdef HAVE_DBUS
-  /* check if we can reuse an existing instance */
-  if ((!opt_bulk_rename && filenames != NULL && thunar_dbus_client_launch_files (working_directory, filenames, NULL, startup_id, NULL))
-      || (opt_bulk_rename && thunar_dbus_client_bulk_rename (working_directory, filenames, TRUE, NULL, startup_id, NULL)))
-    {
-      /* that worked, let's get outa here */
-      g_free (working_directory);
-      g_strfreev (filenames);
-      return EXIT_SUCCESS;
-    }
-#endif
-
   /* initialize the thunar stock items/icons */
   thunar_stock_init ();
 
   /* acquire a reference on the global application */
   application = thunar_application_get ();
 
-#ifdef HAVE_DBUS
-  /* setup daemon mode if requested and supported */
-  thunar_application_set_daemon (application, opt_daemon);
-#endif
-
   /* use the Thunar icon as default for new windows */
   gtk_window_set_default_icon_name ("Thunar");
 
-  /* check if we should open the bulk rename dialog */
-  if (G_UNLIKELY (opt_bulk_rename))
+  /* do further processing inside gapplication */
+  g_application_run (G_APPLICATION (application), argc, argv);
+
+  /* Workaround to bypass "silent fail" if new thunar version is installed while an old version still runs as daemon */
+  /* FIXME: "g_application_register" and the following logic can be removed as soon as g_application/gdbus provides a way to prevent this error */
+  g_application_register (G_APPLICATION (application), NULL, &error);
+  if (error != NULL)
     {
-      /* try to open the bulk rename dialog */
-      if (!thunar_application_bulk_rename (application, working_directory, filenames, TRUE, NULL, startup_id, &error))
-        goto error0;
-    }
-  else if (filenames != NULL && !thunar_application_process_filenames (application, working_directory, filenames, NULL, startup_id, &error))
-    {
-      /* we failed to process the filenames or the bulk rename failed */
-error0:
-      g_printerr ("Thunar: %s\n", error->message);
-      g_object_unref (G_OBJECT (application));
+      if (error->code == G_DBUS_ERROR_UNKNOWN_METHOD && strstr (error->message, "GDBus.Error:org.freedesktop.DBus.Error.UnknownMethod: Method \"DescribeAll\" with signature \"\" on interface \"org.gtk.Actions"))
+          thunar_dialog_ask_terminate_old_daemon ();
       g_error_free (error);
-      return EXIT_FAILURE;
     }
-
-  /* release working directory and filenames */
-  g_free (working_directory);
-  g_strfreev (filenames);
-
-  /* connect to the session manager */
-  session_client = thunar_session_client_new (opt_sm_client_id);
-
-  /* check if the application should run as a daemon */
-  if (thunar_application_get_daemon (application))
-    {
-#ifdef HAVE_DBUS
-      /* attach the D-Bus service */
-      dbus_service = g_object_new (THUNAR_TYPE_DBUS_SERVICE, NULL);
-
-      /* check if the name was requested successfully */
-      if (!thunar_dbus_service_has_connection (dbus_service))
-        thunar_application_set_daemon (application, FALSE);
-#endif
-    }
-  else
-    {
-      /* processing the command line arguments is done asynchronously. Thus, we
-       * schedule an idle source which repeatedly checks whether we are done
-       * processing. Once we're done, it'll make the application quit if there
-       * are no open windows */
-      g_idle_add_full (G_PRIORITY_LOW, thunar_delayed_exit_check,
-                       g_object_ref (application), g_object_unref);
-    }
-
-  /* enter the main loop */
-  gtk_main ();
-
-#ifdef HAVE_DBUS
-  if (dbus_service != NULL)
-    g_object_unref (G_OBJECT (dbus_service));
-#endif
-
-  /* disconnect from the session manager */
-  g_object_unref (G_OBJECT (session_client));
 
   /* release the application reference */
   g_object_unref (G_OBJECT (application));

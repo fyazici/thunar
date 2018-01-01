@@ -31,7 +31,30 @@
 
 #define THUNARX_PROPERTY_PAGE_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), THUNARX_TYPE_PROPERTY_PAGE, ThunarxPropertyPagePrivate))
 
-
+/**
+ * SECTION: thunarx-property-page
+ * @short_description: The base class for pages added to the properties dialog
+ * @title: ThunarxPropertyPage
+ * @include: thunarx/thunarx.h
+ *
+ * The class for pages that can be added to Thunar's file properties dialog
+ * by extensions implementing the #ThunarxPropertyPageProvider interface. The
+ * pages returned by extensions from thunarx_property_page_provider_get_pages()
+ * method are instances of this class or a derived class. Note that extensions
+ * do not need to subclass #ThunarxPropertyPage, but may also instantiate it
+ * directly and add widgets to it, but I strongly suggest to create a subclass
+ * as it usually leads to better modularization and thereby better maintainability
+ * in the code.
+ *
+ * To pick up the #TagPage example from the thunarx_property_page_provider_get_pages()
+ * description again, you'd create a new class #TagPage, that inherits #ThunarxPropertyPage
+ * (using the #THUNARX_DEFINE_TYPE macro), which provides several user interface elements
+ * in the property, and defines atleast one property named <literal>"file"</literal>, which
+ * is the #ThunarxFileInfo whose tags are displayed in the property page. For example, the
+ * <filename>tag-page.h</filename> header file would look like this (this is really just
+ * an example of the suggested way to implement property pages, you may of course choose
+ * a different way)
+ */
 
 /* Property identifiers */
 enum
@@ -51,11 +74,7 @@ static void thunarx_property_page_set_property  (GObject                  *objec
                                                  guint                     prop_id,
                                                  const GValue             *value,
                                                  GParamSpec               *pspec);
-static void thunarx_property_page_destroy       (GtkObject                *object);
-static void thunarx_property_page_size_request  (GtkWidget                *widget,
-                                                 GtkRequisition           *requisition);
-static void thunarx_property_page_size_allocate (GtkWidget                *widget,
-                                                 GtkAllocation            *allocation);
+static void thunarx_property_page_destroy       (GtkWidget                *object);
 
 
 
@@ -73,7 +92,6 @@ G_DEFINE_TYPE (ThunarxPropertyPage, thunarx_property_page, GTK_TYPE_BIN)
 static void
 thunarx_property_page_class_init (ThunarxPropertyPageClass *klass)
 {
-  GtkObjectClass *gtkobject_class;
   GtkWidgetClass *gtkwidget_class;
   GObjectClass   *gobject_class;
 
@@ -84,12 +102,8 @@ thunarx_property_page_class_init (ThunarxPropertyPageClass *klass)
   gobject_class->get_property = thunarx_property_page_get_property;
   gobject_class->set_property = thunarx_property_page_set_property;
 
-  gtkobject_class = GTK_OBJECT_CLASS (klass);
-  gtkobject_class->destroy = thunarx_property_page_destroy;
-
   gtkwidget_class = GTK_WIDGET_CLASS (klass);
-  gtkwidget_class->size_request = thunarx_property_page_size_request;
-  gtkwidget_class->size_allocate = thunarx_property_page_size_allocate;
+  gtkwidget_class->destroy = thunarx_property_page_destroy;
 
   /**
    * ThunarxPropertyPage::label:
@@ -181,67 +195,19 @@ thunarx_property_page_set_property (GObject      *object,
 
 
 static void
-thunarx_property_page_destroy (GtkObject *object)
+thunarx_property_page_destroy (GtkWidget *object)
 {
   ThunarxPropertyPage *property_page = THUNARX_PROPERTY_PAGE (object);
 
   /* destroy the label widget (if any) */
   if (G_LIKELY (property_page->priv->label_widget != NULL))
     {
-      gtk_object_destroy (GTK_OBJECT (property_page->priv->label_widget));
+      gtk_widget_destroy (GTK_WIDGET (property_page->priv->label_widget));
       g_object_unref (G_OBJECT (property_page->priv->label_widget));
       property_page->priv->label_widget = NULL;
     }
 
-  (*GTK_OBJECT_CLASS (thunarx_property_page_parent_class)->destroy) (object);
-}
-
-
-
-static void
-thunarx_property_page_size_request (GtkWidget      *widget,
-                                    GtkRequisition *requisition)
-{
-  GtkBin *bin = GTK_BIN (widget);
-
-  if (G_LIKELY (bin->child != NULL && gtk_widget_get_visible (bin->child)))
-    {
-      gtk_widget_size_request (bin->child, requisition);
-    }
-  else
-    {
-      requisition->width = 0;
-      requisition->height = 0;
-    }
-
-  requisition->width += 2 * (GTK_CONTAINER (bin)->border_width + widget->style->xthickness);
-  requisition->height += 2 * (GTK_CONTAINER (bin)->border_width + widget->style->ythickness);
-}
-
-
-
-static void
-thunarx_property_page_size_allocate (GtkWidget     *widget,
-                                     GtkAllocation *allocation)
-{
-  GtkAllocation child_allocation;
-  GtkBin       *bin = GTK_BIN (widget);
-
-  /* apply the allocation to the property page */
-  widget->allocation = *allocation;
-
-  /* apply the child allocation if we have a child */
-  if (G_LIKELY (bin->child != NULL && gtk_widget_get_visible (bin->child)))
-    {
-      /* calculate the allocation for the child widget */
-      child_allocation.x = allocation->x + GTK_CONTAINER (bin)->border_width + widget->style->xthickness;
-      child_allocation.y = allocation->y + GTK_CONTAINER (bin)->border_width + widget->style->ythickness;
-      child_allocation.width = allocation->width - 2 * (GTK_CONTAINER (bin)->border_width + widget->style->xthickness);
-      child_allocation.height = allocation->height - 2 * (GTK_CONTAINER (bin)->border_width + widget->style->ythickness);
-
-      /* apply the child allocation */
-      gtk_widget_size_allocate (bin->child, &child_allocation);
-    }
+  (*GTK_WIDGET_CLASS (thunarx_property_page_parent_class)->destroy) (object);
 }
 
 
@@ -343,7 +309,7 @@ thunarx_property_page_set_label (ThunarxPropertyPage *property_page,
  * Returns the label widget for the @property_page. See
  * thunarx_property_page_set_label_widget().
  *
- * return value: the label widget or %NULL if there is none.
+ * Returns: (transfer none): the label widget or %NULL if there is none.
  **/
 GtkWidget*
 thunarx_property_page_get_label_widget (ThunarxPropertyPage *property_page)
@@ -367,7 +333,7 @@ thunarx_property_page_set_label_widget (ThunarxPropertyPage *property_page,
                                         GtkWidget           *label_widget)
 {
   g_return_if_fail (THUNARX_IS_PROPERTY_PAGE (property_page));
-  g_return_if_fail (label_widget == NULL || (GTK_IS_WIDGET (label_widget) && label_widget->parent == NULL));
+  g_return_if_fail (label_widget == NULL || (GTK_IS_WIDGET (label_widget) && gtk_widget_get_parent (label_widget) == NULL));
 
   if (G_UNLIKELY (label_widget == property_page->priv->label_widget))
     return;

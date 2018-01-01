@@ -40,11 +40,14 @@
 
 
 
+#define THUNAR_LOCATION_BUTTON_MAX_WIDTH 250
+
+
+
 /* Property identifiers */
 enum
 {
   PROP_0,
-  PROP_ACTIVE,
   PROP_FILE,
 };
 
@@ -52,7 +55,6 @@ enum
 enum
 {
   CLICKED,
-  CONTEXT_MENU,
   GONE,
   LAST_SIGNAL,
 };
@@ -68,75 +70,69 @@ static void           thunar_location_button_set_property           (GObject    
                                                                      guint                       prop_id,
                                                                      const GValue               *value,
                                                                      GParamSpec                 *pspec);
-static void           thunar_location_button_style_set              (GtkWidget                  *widget,
-                                                                     GtkStyle                   *previous_style);
 static GdkDragAction  thunar_location_button_get_dest_actions       (ThunarLocationButton       *location_button,
                                                                      GdkDragContext             *context,
                                                                      GtkWidget                  *button,
                                                                      guint                       timestamp);
+static void           thunar_location_button_active_changed         (ThunarLocationButton       *location_button);
 static void           thunar_location_button_file_changed           (ThunarLocationButton       *location_button,
                                                                      ThunarFile                 *file);
 static void           thunar_location_button_file_destroy           (ThunarLocationButton       *location_button,
                                                                      ThunarFile                 *file);
-static void           thunar_location_button_align_size_request     (GtkWidget                  *align,
-                                                                     GtkRequisition             *requisition,
-                                                                     ThunarLocationButton       *location_button);
+static void           thunar_location_button_apply_label_size       (ThunarLocationButton       *location_button);
 static gboolean       thunar_location_button_button_press_event     (GtkWidget                  *button,
-                                                                     GdkEventButton             *event,
-                                                                     ThunarLocationButton       *location_button);
+                                                                     GdkEventButton             *event);
 static gboolean       thunar_location_button_button_release_event   (GtkWidget                  *button,
-                                                                     GdkEventButton             *event,
-                                                                     ThunarLocationButton       *location_button);
+                                                                     GdkEventButton             *event);
+static void           thunar_location_button_map                    (GtkWidget                  *button);
+static void           thunar_location_button_style_updated          (GtkWidget                  *button);
 static gboolean       thunar_location_button_drag_drop              (GtkWidget                  *button,
                                                                      GdkDragContext             *context,
                                                                      gint                        x,
                                                                      gint                        y,
-                                                                     guint                       timestamp,
-                                                                     ThunarLocationButton       *location_button);
+                                                                     guint                       timestamp);
 static void           thunar_location_button_drag_data_get          (GtkWidget                  *button,
                                                                      GdkDragContext             *context,
                                                                      GtkSelectionData           *selection_data,
                                                                      guint                       info,
-                                                                     guint                       timestamp,
-                                                                     ThunarLocationButton       *location_button);
+                                                                     guint                       timestamp);
 static void           thunar_location_button_drag_data_received     (GtkWidget                  *button,
                                                                      GdkDragContext             *context,
                                                                      gint                        x,
                                                                      gint                        y,
                                                                      GtkSelectionData           *selection_data,
                                                                      guint                       info,
-                                                                     guint                       timestamp,
-                                                                     ThunarLocationButton       *location_button);
+                                                                     guint                       timestamp);
 static void           thunar_location_button_drag_leave             (GtkWidget                  *button,
                                                                      GdkDragContext             *context,
-                                                                     guint                       timestamp,
-                                                                     ThunarLocationButton       *location_button);
+                                                                     guint                       timestamp);
 static gboolean       thunar_location_button_drag_motion            (GtkWidget                  *button,
                                                                      GdkDragContext             *context,
                                                                      gint                        x,
                                                                      gint                        y,
-                                                                     guint                       timestamp,
-                                                                     ThunarLocationButton       *location_button);
+                                                                     guint                       timestamp);
 static gboolean       thunar_location_button_enter_timeout          (gpointer                    user_data);
 static void           thunar_location_button_enter_timeout_destroy  (gpointer                    user_data);
+static void           thunar_location_button_clicked                (ThunarLocationButton       *button);
 
 
 
 struct _ThunarLocationButtonClass
 {
-  GtkAlignmentClass __parent__;
+  GtkToggleButtonClass __parent__;
 };
 
 struct _ThunarLocationButton
 {
-  GtkAlignment __parent__;
+  GtkToggleButton __parent__;
 
   GtkWidget          *image;
   GtkWidget          *label;
+  GtkWidget          *bold_label;
 
   /* the current icon state (i.e. accepting drops) */
   ThunarFileIconState file_icon_state;
-  
+
   /* enter folders using DnD */
   guint               enter_timeout_id;
 
@@ -146,7 +142,6 @@ struct _ThunarLocationButton
   guint               drop_occurred : 1;
 
   /* public properties */
-  guint               active : 1;
   ThunarFile         *file;
 };
 
@@ -161,7 +156,7 @@ static guint location_button_signals[LAST_SIGNAL];
 
 
 
-G_DEFINE_TYPE (ThunarLocationButton, thunar_location_button, GTK_TYPE_ALIGNMENT)
+G_DEFINE_TYPE (ThunarLocationButton, thunar_location_button, GTK_TYPE_TOGGLE_BUTTON)
 
 
 
@@ -177,20 +172,8 @@ thunar_location_button_class_init (ThunarLocationButtonClass *klass)
   gobject_class->set_property = thunar_location_button_set_property;
 
   gtkwidget_class = GTK_WIDGET_CLASS (klass);
-  gtkwidget_class->style_set = thunar_location_button_style_set;
-
-  /**
-   * ThunarLocationButton:active:
-   *
-   * Whether the location button is currently active.
-   **/
-  g_object_class_install_property (gobject_class,
-                                   PROP_ACTIVE,
-                                   g_param_spec_boolean ("active",
-                                                         "active",
-                                                         "active",
-                                                         FALSE,
-                                                         EXO_PARAM_READWRITE));
+  gtkwidget_class->map = thunar_location_button_map;
+  gtkwidget_class->style_updated = thunar_location_button_style_updated;
 
   /**
    * ThunarLocationButton:file:
@@ -206,37 +189,20 @@ thunar_location_button_class_init (ThunarLocationButtonClass *klass)
                                                         EXO_PARAM_READWRITE));
 
   /**
-   * ThunarLocationButton::clicked:
+   * ThunarLocationButton::location-button-clicked:
    * @location_button : a #ThunarLocationButton.
    *
    * Emitted by @location_button when the user clicks on the
-   * @location_button or thunar_location_button_clicked() is
-   * called.
+   * @location_button or gtk_button_clicked() is called.
    **/
   location_button_signals[CLICKED] =
-    g_signal_new (I_("clicked"),
+    g_signal_new (I_("location-button-clicked"),
                   G_TYPE_FROM_CLASS (klass),
                   G_SIGNAL_RUN_LAST,
                   0, NULL, NULL,
                   g_cclosure_marshal_VOID__BOOLEAN,
                   G_TYPE_NONE, 1,
                   G_TYPE_BOOLEAN);
-
-  /**
-   * ThunarLocationButton::context-menu:
-   * @location_button : a #ThunarLocationButton.
-   * @event           : a #GdkEventButton.
-   *
-   * Emitted by @location_button when the user requests to open
-   * the context menu for @location_button.
-   **/
-  location_button_signals[CONTEXT_MENU] =
-    g_signal_new (I_("context-menu"),
-                  G_TYPE_FROM_CLASS (klass),
-                  G_SIGNAL_RUN_LAST,
-                  0, NULL, NULL,
-                  g_cclosure_marshal_VOID__BOXED,
-                  G_TYPE_NONE, 1, GDK_TYPE_EVENT);
 
   /**
    * ThunarLocationButton::gone:
@@ -257,52 +223,49 @@ thunar_location_button_class_init (ThunarLocationButtonClass *klass)
 
 
 static void
-thunar_location_button_init (ThunarLocationButton *location_button)
+thunar_location_button_init (ThunarLocationButton *button)
 {
-  GtkWidget *align;
-  GtkWidget *button;
   GtkWidget *hbox;
 
-  /* create the toggle button */
-  button = gtk_toggle_button_new ();
-  gtk_widget_set_can_focus (button, FALSE);
-  g_signal_connect_swapped (G_OBJECT (button), "clicked", G_CALLBACK (thunar_location_button_clicked), location_button);
-  exo_mutual_binding_new (G_OBJECT (location_button), "active", G_OBJECT (button), "active");
-  gtk_container_add (GTK_CONTAINER (location_button), button);
-  gtk_widget_show (button);
+  /* initialize the toggle button */
+  g_signal_connect (button, "notify::active", G_CALLBACK (thunar_location_button_active_changed), NULL);
+  g_signal_connect (button, "clicked", G_CALLBACK (thunar_location_button_clicked), NULL);
 
   /* setup drag support for the button */
   gtk_drag_source_set (GTK_WIDGET (button), GDK_BUTTON1_MASK, drag_targets, G_N_ELEMENTS (drag_targets), GDK_ACTION_LINK);
   gtk_drag_dest_set (GTK_WIDGET (button), GTK_DEST_DEFAULT_HIGHLIGHT | GTK_DEST_DEFAULT_MOTION, drag_targets,
                      G_N_ELEMENTS (drag_targets), GDK_ACTION_ASK | GDK_ACTION_COPY | GDK_ACTION_LINK | GDK_ACTION_MOVE);
-  g_signal_connect (G_OBJECT (button), "button-press-event", G_CALLBACK (thunar_location_button_button_press_event), location_button);
-  g_signal_connect (G_OBJECT (button), "button-release-event", G_CALLBACK (thunar_location_button_button_release_event), location_button);
-  g_signal_connect (G_OBJECT (button), "drag-drop", G_CALLBACK (thunar_location_button_drag_drop), location_button);
-  g_signal_connect (G_OBJECT (button), "drag-data-get", G_CALLBACK (thunar_location_button_drag_data_get), location_button);
-  g_signal_connect (G_OBJECT (button), "drag-data-received", G_CALLBACK (thunar_location_button_drag_data_received), location_button);
-  g_signal_connect (G_OBJECT (button), "drag-leave", G_CALLBACK (thunar_location_button_drag_leave), location_button);
-  g_signal_connect (G_OBJECT (button), "drag-motion", G_CALLBACK (thunar_location_button_drag_motion), location_button);
+  g_signal_connect (G_OBJECT (button), "button-press-event", G_CALLBACK (thunar_location_button_button_press_event), NULL);
+  g_signal_connect (G_OBJECT (button), "button-release-event", G_CALLBACK (thunar_location_button_button_release_event), NULL);
+  g_signal_connect (G_OBJECT (button), "drag-drop", G_CALLBACK (thunar_location_button_drag_drop), NULL);
+  g_signal_connect (G_OBJECT (button), "drag-data-get", G_CALLBACK (thunar_location_button_drag_data_get), NULL);
+  g_signal_connect (G_OBJECT (button), "drag-data-received", G_CALLBACK (thunar_location_button_drag_data_received), NULL);
+  g_signal_connect (G_OBJECT (button), "drag-leave", G_CALLBACK (thunar_location_button_drag_leave), NULL);
+  g_signal_connect (G_OBJECT (button), "drag-motion", G_CALLBACK (thunar_location_button_drag_motion), NULL);
 
   /* create the horizontal box */
-  hbox = gtk_hbox_new (FALSE, 2);
+  hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
   gtk_container_add (GTK_CONTAINER (button), hbox);
   gtk_widget_show (hbox);
 
   /* create the button image */
-  location_button->image = gtk_image_new ();
-  gtk_box_pack_start (GTK_BOX (hbox), location_button->image, TRUE, FALSE, 0);
-  gtk_widget_show (location_button->image);
-
-  /* create the button label alignment */
-  align = gtk_alignment_new (0.5f, 0.5f, 1.0f, 1.0f);
-  g_signal_connect (G_OBJECT (align), "size-request", G_CALLBACK (thunar_location_button_align_size_request), location_button);
-  gtk_box_pack_start (GTK_BOX (hbox), align, TRUE, TRUE, 0);
-  gtk_widget_show (align);
+  button->image = gtk_image_new ();
+  gtk_box_pack_start (GTK_BOX (hbox), button->image, TRUE, FALSE, 0);
+  gtk_widget_show (button->image);
 
   /* create the button label */
-  location_button->label = g_object_new (GTK_TYPE_LABEL, NULL);
-  gtk_container_add (GTK_CONTAINER (align), location_button->label);
-  gtk_widget_show (location_button->label);
+  button->label = g_object_new (GTK_TYPE_LABEL, "xalign", 0.5f, "yalign", 0.5f, NULL);
+  gtk_box_pack_start (GTK_BOX (hbox), button->label, TRUE, TRUE, 0);
+  gtk_widget_show (button->label);
+
+  /* create the bold label */
+  button->bold_label = g_object_new (GTK_TYPE_LABEL, "xalign", 0.5f, "yalign", 0.5f, NULL);
+  gtk_box_pack_start (GTK_BOX (hbox), button->bold_label, TRUE, TRUE, 0);
+  gtk_label_set_attributes (GTK_LABEL (button->bold_label), thunar_pango_attr_list_bold ());
+  /* but don't show it, as it is only a fake to retrieve the bold size */
+
+  /* add widget to css class which matches all buttons in the path-bar */
+  gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (button)), "path-bar-button");
 }
 
 
@@ -337,10 +300,6 @@ thunar_location_button_get_property (GObject    *object,
 
   switch (prop_id)
     {
-    case PROP_ACTIVE:
-      g_value_set_boolean (value, thunar_location_button_get_active (location_button));
-      break;
-
     case PROP_FILE:
       g_value_set_object (value, thunar_location_button_get_file (location_button));
       break;
@@ -363,10 +322,6 @@ thunar_location_button_set_property (GObject      *object,
 
   switch (prop_id)
     {
-    case PROP_ACTIVE:
-      thunar_location_button_set_active (location_button, g_value_get_boolean (value));
-      break;
-
     case PROP_FILE:
       thunar_location_button_set_file (location_button, g_value_get_object (value));
       break;
@@ -380,16 +335,21 @@ thunar_location_button_set_property (GObject      *object,
 
 
 static void
-thunar_location_button_style_set (GtkWidget *widget,
-                                  GtkStyle  *previous_style)
+thunar_location_button_map (GtkWidget *button)
 {
-  ThunarLocationButton *location_button = THUNAR_LOCATION_BUTTON (widget);
+  GTK_WIDGET_CLASS (thunar_location_button_parent_class)->map (button);
 
-  /* update the user interface if we have a file */
-  if (G_LIKELY (location_button->file != NULL))
-    thunar_location_button_file_changed (location_button, location_button->file);
+  thunar_location_button_apply_label_size (THUNAR_LOCATION_BUTTON (button));
+}
 
-  (*GTK_WIDGET_CLASS (thunar_location_button_parent_class)->style_set) (widget, previous_style);
+
+
+static void
+thunar_location_button_style_updated (GtkWidget *button)
+{
+  GTK_WIDGET_CLASS (thunar_location_button_parent_class)->style_updated (button);
+
+  thunar_location_button_apply_label_size (THUNAR_LOCATION_BUTTON (button));
 }
 
 
@@ -422,58 +382,50 @@ static void
 thunar_location_button_file_changed (ThunarLocationButton *location_button,
                                      ThunarFile           *file)
 {
-  ThunarIconFactory *icon_factory;
   GtkIconTheme      *icon_theme;
-  GtkSettings       *settings;
-  GdkPixbuf         *icon;
-  const gchar       *icon_name;
-  gint               height;
-  gint               width;
-  gint               size;
-  const gchar       *custom_icon;
+  gchar             *icon_name;
+  const gchar       *dnd_icon_name;
 
   _thunar_return_if_fail (THUNAR_IS_LOCATION_BUTTON (location_button));
   _thunar_return_if_fail (location_button->file == file);
   _thunar_return_if_fail (THUNAR_IS_FILE (file));
 
-  /* determine the icon theme for the widget */
+  /* Retrieve the icon theme */
   icon_theme = gtk_icon_theme_get_for_screen (gtk_widget_get_screen (GTK_WIDGET (location_button)));
+  /* TODO: listen for icon theme changes */
 
   /* update and show the label widget (hide for the local root folder) */
-  if (thunar_file_is_local (file) && thunar_file_is_root (file)) 
+  if (thunar_file_is_local (file) && thunar_file_is_root (file))
     {
-      /* hide the alignment in which the label would otherwise show up */
-      gtk_widget_hide (gtk_widget_get_parent (location_button->label));
+      /* hide the label would otherwise show up */
+      gtk_widget_hide (location_button->label);
     }
   else
     {
-      /* set label to the file's display name and show the alignment (and thereby the label) */
+      /* set label to the file's display name and show the label */
       gtk_label_set_text (GTK_LABEL (location_button->label), thunar_file_get_display_name (file));
-      gtk_widget_show (gtk_widget_get_parent (location_button->label));
+
+      /* set the label's size request in such a way that a bold label will not change the button size */
+      if (gtk_widget_get_mapped (GTK_WIDGET (location_button)))
+        thunar_location_button_apply_label_size (location_button);
+
+      gtk_widget_show (location_button->label);
     }
 
   /* the image is only visible for certain special paths */
   if (thunar_file_is_home (file) || thunar_file_is_desktop (file) || thunar_file_is_root (file))
     {
-      /* determine the icon size for menus (to be compatible with GtkPathBar) */
-      settings = gtk_settings_get_for_screen (gtk_widget_get_screen (GTK_WIDGET (location_button)));
-      if (gtk_icon_size_lookup_for_settings (settings, GTK_ICON_SIZE_MENU, &width, &height))
-        size = MAX (width, height);
-      else
-        size = 16;
+      icon_name = g_strdup_printf ("%s-symbolic", thunar_file_get_icon_name (file,
+                                                                             location_button->file_icon_state,
+                                                                             icon_theme));
 
       /* update the icon for the image */
-      icon_factory = thunar_icon_factory_get_for_icon_theme (icon_theme);
-      icon = thunar_icon_factory_load_file_icon (icon_factory, file, location_button->file_icon_state, size);
-      if (G_LIKELY (icon != NULL))
-        {
-          gtk_image_set_from_pixbuf (GTK_IMAGE (location_button->image), icon);
-          g_object_unref (G_OBJECT (icon));
-        }
-      g_object_unref (G_OBJECT (icon_factory));
+      gtk_image_set_from_icon_name (GTK_IMAGE (location_button->image), icon_name, GTK_ICON_SIZE_BUTTON);
 
       /* show the image widget */
       gtk_widget_show (location_button->image);
+
+      g_free (icon_name);
     }
   else
     {
@@ -482,15 +434,15 @@ thunar_location_button_file_changed (ThunarLocationButton *location_button,
     }
 
   /* setup the DnD icon for the button */
-  custom_icon = thunar_file_get_custom_icon (file);
-  if (custom_icon != NULL)
+  dnd_icon_name = thunar_file_get_custom_icon (file);
+  if (dnd_icon_name != NULL)
     {
-      gtk_drag_source_set_icon_name (GTK_BIN (location_button)->child, custom_icon);
+      gtk_drag_source_set_icon_name (GTK_WIDGET (location_button), dnd_icon_name);
     }
   else
     {
-      icon_name = thunar_file_get_icon_name (file, location_button->file_icon_state, icon_theme);
-      gtk_drag_source_set_icon_name (GTK_BIN (location_button)->child, icon_name);
+      dnd_icon_name = thunar_file_get_icon_name (file, location_button->file_icon_state, icon_theme);
+      gtk_drag_source_set_icon_name (GTK_WIDGET (location_button), dnd_icon_name);
     }
 }
 
@@ -511,45 +463,57 @@ thunar_location_button_file_destroy (ThunarLocationButton *location_button,
 
 
 static void
-thunar_location_button_align_size_request (GtkWidget            *align,
-                                           GtkRequisition       *requisition,
-                                           ThunarLocationButton *location_button)
+thunar_location_button_apply_label_size (ThunarLocationButton *location_button)
 {
-  PangoLayout *layout;
-  gint         normal_height;
-  gint         normal_width;
-  gint         bold_height;
-  gint         bold_width;
+  GtkRequisition normal_size;
+  GtkRequisition bold_size;
+  gint           width, height;
+  const gchar   *text;
 
-  /* allocate a pango layout for the label text */
-  layout = gtk_widget_create_pango_layout (location_button->label, gtk_label_get_text (GTK_LABEL (location_button->label)));
+  text = gtk_label_get_text (GTK_LABEL (location_button->label));
 
-  /* determine the normal pixel size */
-  pango_layout_get_pixel_size (layout, &normal_width, &normal_height);
+  /* determine the normal size */
+  gtk_widget_get_preferred_size (location_button->label, NULL, &normal_size);
 
-  /* determine the bold pixel size */
-  pango_layout_set_attributes (layout, thunar_pango_attr_list_bold ());
-  pango_layout_get_pixel_size (layout, &bold_width, &bold_height);
+  /* determine the bold size */
+  gtk_label_set_text (GTK_LABEL (location_button->bold_label), text);
+  gtk_widget_get_preferred_size (location_button->bold_label, NULL, &bold_size);
 
   /* request the maximum of the pixel sizes, to make sure
    * the button always requests the same size, no matter if
    * the label is bold or not.
    */
-  requisition->width = MAX (bold_width, normal_width);
-  requisition->height = MAX (bold_height, normal_height);
+  width = MAX (normal_size.width, bold_size.width);
+  height = MAX (normal_size.height, bold_size.height);
 
-  /* cleanup */
-  g_object_unref (G_OBJECT (layout));
+  if (width >= THUNAR_LOCATION_BUTTON_MAX_WIDTH)
+    {
+      /* if the size is too big, enable ellipsizing */
+      gtk_label_set_ellipsize (GTK_LABEL (location_button->label), PANGO_ELLIPSIZE_MIDDLE);
+      gtk_widget_set_size_request (GTK_WIDGET (location_button->label), THUNAR_LOCATION_BUTTON_MAX_WIDTH, height);
+
+      /* and set a tooltip */
+      gtk_widget_set_tooltip_text (location_button->label, text);
+    }
+  else
+    {
+      /* don't enable ellipsizing: In some borderline cases, the size calculated
+       * is actually off by 1 or 2 pixels and the label will ellipsize unnecessarily
+       * TODO: check what we did wrong */
+      gtk_widget_set_size_request (GTK_WIDGET (location_button->label), width, height);
+      gtk_widget_set_tooltip_text (location_button->label, NULL);
+    }
 }
 
 
 
 static gboolean
 thunar_location_button_button_press_event (GtkWidget            *button,
-                                           GdkEventButton       *event,
-                                           ThunarLocationButton *location_button)
+                                           GdkEventButton       *event)
 {
-  _thunar_return_val_if_fail (THUNAR_IS_LOCATION_BUTTON (location_button), FALSE);
+  gboolean popup_menu_return;
+
+  _thunar_return_val_if_fail (THUNAR_IS_LOCATION_BUTTON (button), FALSE);
 
   /* check if we can handle the button event */
   if (G_UNLIKELY (event->button == 2))
@@ -559,8 +523,8 @@ thunar_location_button_button_press_event (GtkWidget            *button,
     }
   else if (event->button == 3)
     {
-      /* emit the "context-menu" signal and let the surrounding ThunarLocationButtons popup a menu */
-      g_signal_emit (G_OBJECT (location_button), location_button_signals[CONTEXT_MENU], 0, event);
+      /* emit the "popup-menu" signal and let the surrounding ThunarLocationButtons popup a menu */
+      g_signal_emit_by_name (G_OBJECT (button), "popup-menu", &popup_menu_return);
       return TRUE;
     }
 
@@ -571,14 +535,13 @@ thunar_location_button_button_press_event (GtkWidget            *button,
 
 static gboolean
 thunar_location_button_button_release_event (GtkWidget            *button,
-                                             GdkEventButton       *event,
-                                             ThunarLocationButton *location_button)
+                                             GdkEventButton       *event)
 {
   ThunarApplication *application;
   ThunarPreferences *preferences;
   gboolean           open_in_tab;
 
-  _thunar_return_val_if_fail (THUNAR_IS_LOCATION_BUTTON (location_button), FALSE);
+  _thunar_return_val_if_fail (THUNAR_IS_LOCATION_BUTTON (button), FALSE);
 
   /* reset inconsistent button state after releasing the middle-mouse-button */
   if (G_UNLIKELY (event->button == 2))
@@ -587,7 +550,7 @@ thunar_location_button_button_release_event (GtkWidget            *button,
       gtk_toggle_button_set_inconsistent (GTK_TOGGLE_BUTTON (button), FALSE);
 
       /* verify that we still have a valid file */
-      if (G_LIKELY (location_button->file != NULL))
+      if (G_LIKELY (THUNAR_LOCATION_BUTTON (button)->file != NULL))
         {
           preferences = thunar_preferences_get ();
           g_object_get (preferences, "misc-middle-click-in-tab", &open_in_tab, NULL);
@@ -596,13 +559,13 @@ thunar_location_button_button_release_event (GtkWidget            *button,
           if (open_in_tab)
             {
               /* open in tab */
-              g_signal_emit (G_OBJECT (location_button), location_button_signals[CLICKED], 0, TRUE);
+              g_signal_emit_by_name (G_OBJECT (button), "location-button-clicked", 0, TRUE);
             }
           else
             {
               /* open a new window for the folder */
               application = thunar_application_get ();
-              thunar_application_open_window (application, location_button->file, gtk_widget_get_screen (GTK_WIDGET (location_button)), NULL);
+              thunar_application_open_window (application, THUNAR_LOCATION_BUTTON (button)->file, gtk_widget_get_screen (button), NULL);
               g_object_unref (G_OBJECT (application));
             }
         }
@@ -618,13 +581,12 @@ thunar_location_button_drag_drop (GtkWidget            *button,
                                   GdkDragContext       *context,
                                   gint                  x,
                                   gint                  y,
-                                  guint                 timestamp,
-                                  ThunarLocationButton *location_button)
+                                  guint                 timestamp)
 {
   GdkAtom target;
 
   _thunar_return_val_if_fail (GTK_IS_WIDGET (button), FALSE);
-  _thunar_return_val_if_fail (THUNAR_IS_LOCATION_BUTTON (location_button), FALSE);
+  _thunar_return_val_if_fail (THUNAR_IS_LOCATION_BUTTON (button), FALSE);
 
   /* determine the DnD target and see if we can handle it */
   target = gtk_drag_dest_find_target (button, context, NULL);
@@ -634,7 +596,7 @@ thunar_location_button_drag_drop (GtkWidget            *button,
   /* set state so drag-data-received knows that
    * this is really a drop this time.
    */
-  location_button->drop_occurred = TRUE;
+  THUNAR_LOCATION_BUTTON (button)->drop_occurred = TRUE;
 
   /* request the drag data from the source */
   gtk_drag_get_data (button, context, target, timestamp);
@@ -650,21 +612,20 @@ thunar_location_button_drag_data_get (GtkWidget            *button,
                                       GdkDragContext       *context,
                                       GtkSelectionData     *selection_data,
                                       guint                 info,
-                                      guint                 timestamp,
-                                      ThunarLocationButton *location_button)
+                                      guint                 timestamp)
 {
   gchar **uris;
   GList   path_list;
 
   _thunar_return_if_fail (GTK_IS_WIDGET (button));
-  _thunar_return_if_fail (THUNAR_IS_LOCATION_BUTTON (location_button));
+  _thunar_return_if_fail (THUNAR_IS_LOCATION_BUTTON (button));
 
   /* verify that we have a valid file */
-  if (G_LIKELY (location_button->file != NULL))
+  if (G_LIKELY (THUNAR_LOCATION_BUTTON (button)->file != NULL))
     {
       /* transform the path into an uri list string */
       path_list.next = path_list.prev = NULL;
-      path_list.data = thunar_file_get_file (location_button->file);
+      path_list.data = thunar_file_get_file (THUNAR_LOCATION_BUTTON (button)->file);
 
       /* set the uri list for the drag selection */
       uris = thunar_g_file_list_to_stringv (&path_list);
@@ -682,19 +643,19 @@ thunar_location_button_drag_data_received (GtkWidget            *button,
                                            gint                  y,
                                            GtkSelectionData     *selection_data,
                                            guint                 info,
-                                           guint                 timestamp,
-                                           ThunarLocationButton *location_button)
+                                           guint                 timestamp)
 {
-  GdkDragAction actions;
-  GdkDragAction action;
-  gboolean      succeed = FALSE;
+  GdkDragAction         actions;
+  GdkDragAction         action;
+  gboolean              succeed = FALSE;
+  ThunarLocationButton *location_button = THUNAR_LOCATION_BUTTON (button);
 
   /* check if we don't already know the drop data */
   if (G_LIKELY (!location_button->drop_data_ready))
     {
       /* extract the URI list from the selection data (if valid) */
-      if (selection_data->format == 8 && selection_data->length > 0)
-        location_button->drop_file_list = thunar_g_file_list_new_from_string ((const gchar *) selection_data->data);
+      if (gtk_selection_data_get_format (selection_data) == 8 && gtk_selection_data_get_length (selection_data) > 0)
+        location_button->drop_file_list = thunar_g_file_list_new_from_string ((const gchar *) gtk_selection_data_get_data (selection_data));
 
       /* reset the state */
       location_button->drop_data_ready = TRUE;
@@ -711,9 +672,9 @@ thunar_location_button_drag_data_received (GtkWidget            *button,
       if (G_LIKELY ((actions & (GDK_ACTION_COPY | GDK_ACTION_MOVE | GDK_ACTION_LINK)) != 0))
         {
           /* as the user what to do with the drop data */
-          action = (context->action == GDK_ACTION_ASK)
+          action = (gdk_drag_context_get_selected_action (context) == GDK_ACTION_ASK)
                  ? thunar_dnd_ask (button, location_button->file, location_button->drop_file_list, timestamp, actions)
-                 : context->action;
+                 : gdk_drag_context_get_selected_action (context);
 
           /* perform the requested action */
           if (G_LIKELY (action != 0))
@@ -724,7 +685,7 @@ thunar_location_button_drag_data_received (GtkWidget            *button,
       gtk_drag_finish (context, succeed, FALSE, timestamp);
 
       /* disable the highlighting and release the drag data */
-      thunar_location_button_drag_leave (button, context, timestamp, location_button);
+      thunar_location_button_drag_leave (button, context, timestamp);
     }
 }
 
@@ -733,11 +694,14 @@ thunar_location_button_drag_data_received (GtkWidget            *button,
 static void
 thunar_location_button_drag_leave (GtkWidget            *button,
                                    GdkDragContext       *context,
-                                   guint                 timestamp,
-                                   ThunarLocationButton *location_button)
+                                   guint                 timestamp)
 {
+  ThunarLocationButton *location_button;
+
   _thunar_return_if_fail (GTK_IS_BUTTON (button));
-  _thunar_return_if_fail (THUNAR_IS_LOCATION_BUTTON (location_button));
+  _thunar_return_if_fail (THUNAR_IS_LOCATION_BUTTON (button));
+
+  location_button = THUNAR_LOCATION_BUTTON (button);
 
   /* reset the file icon state to default appearance */
   if (G_LIKELY (location_button->file_icon_state != THUNAR_FILE_ICON_STATE_DEFAULT))
@@ -770,28 +734,31 @@ thunar_location_button_drag_motion (GtkWidget            *button,
                                     GdkDragContext       *context,
                                     gint                  x,
                                     gint                  y,
-                                    guint                 timestamp,
-                                    ThunarLocationButton *location_button)
+                                    guint                 timestamp)
 {
-  ThunarFileIconState file_icon_state;
-  GdkDragAction       actions;
-  GtkSettings        *settings;
-  GdkAtom             target;
-  gint                delay;
+  ThunarFileIconState    file_icon_state;
+  GdkDragAction          actions;
+  GdkAtom                target;
+  gint                   delay;
+  ThunarLocationButton  *location_button;
 
   _thunar_return_val_if_fail (GTK_IS_BUTTON (button), FALSE);
-  _thunar_return_val_if_fail (THUNAR_IS_LOCATION_BUTTON (location_button), FALSE);
+  _thunar_return_val_if_fail (THUNAR_IS_LOCATION_BUTTON (button), FALSE);
+
+  location_button = THUNAR_LOCATION_BUTTON (button);
 
   /* schedule the enter timeout if not already done */
   if (G_UNLIKELY (location_button->enter_timeout_id == 0))
     {
-      /* we use the gtk-menu-popdown-delay here, which seems to be sane for our purpose */
-      settings = gtk_settings_get_for_screen (gtk_widget_get_screen (button));
-      g_object_get (G_OBJECT (settings), "gtk-menu-popdown-delay", &delay, NULL);
+      /* we used to use gtk-menu-popdown-delay here, but this was never right and is now deprecated */
+      /* therefore, we hardcode the value instead. */
+      delay = 1000;
 
       /* schedule the timeout */
-      location_button->enter_timeout_id = g_timeout_add_full (G_PRIORITY_DEFAULT, delay, thunar_location_button_enter_timeout,
-                                                              location_button, thunar_location_button_enter_timeout_destroy);
+      location_button->enter_timeout_id = gdk_threads_add_timeout_full (G_PRIORITY_DEFAULT, delay,
+                                                                        thunar_location_button_enter_timeout,
+                                                                        location_button,
+                                                                        thunar_location_button_enter_timeout_destroy);
     }
 
   /* request the drop on-demand (if we don't have it already) */
@@ -838,8 +805,6 @@ thunar_location_button_enter_timeout (gpointer user_data)
 {
   ThunarLocationButton *location_button = THUNAR_LOCATION_BUTTON (user_data);
 
-  GDK_THREADS_ENTER ();
-
   /* We emulate a "clicked" event here, because else the buttons
    * would be destroyed and replaced by new buttons, which causes
    * the Gtk DND code to dump core once the mouse leaves the area
@@ -848,9 +813,7 @@ thunar_location_button_enter_timeout (gpointer user_data)
    * Besides that, handling this as "clicked" event allows the user
    * to go back to the initial directory.
    */
-  thunar_location_button_clicked (location_button);
-
-  GDK_THREADS_LEAVE ();
+  gtk_button_clicked (GTK_BUTTON (location_button));
 
   return FALSE;
 }
@@ -880,44 +843,17 @@ thunar_location_button_new (void)
 
 
 
-/**
- * thunar_location_button_get_active:
- * @location_button : a #ThunarLocationButton.
- *
- * Returns %TRUE if @location_button is currently active.
- *
- * Return value: %TRUE if @location_button is currently active.
- **/
-gboolean
-thunar_location_button_get_active (ThunarLocationButton *location_button)
+static void
+thunar_location_button_active_changed (ThunarLocationButton *location_button)
 {
-  _thunar_return_val_if_fail (THUNAR_IS_LOCATION_BUTTON (location_button), FALSE);
-  return location_button->active;
-}
+  gboolean active;
 
-
-
-/**
- * thunar_location_button_set_active:
- * @location_button : a #ThunarLocationButton.
- * @active          : %TRUE if @location_button should be active.
- *
- * Sets the active state of @location_button to @active.
- **/
-void
-thunar_location_button_set_active (ThunarLocationButton *location_button,
-                                   gboolean              active)
-{
   _thunar_return_if_fail (THUNAR_IS_LOCATION_BUTTON (location_button));
 
-  /* apply the new state */
-  location_button->active = active;
+  active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (location_button));
 
   /* use a bold label for active location buttons */
   gtk_label_set_attributes (GTK_LABEL (location_button->label), active ? thunar_pango_attr_list_bold () : NULL);
-
-  /* notify listeners */
-  g_object_notify (G_OBJECT (location_button), "active");
 }
 
 
@@ -985,9 +921,8 @@ thunar_location_button_set_file (ThunarLocationButton *location_button,
       g_signal_connect_swapped (G_OBJECT (file), "changed", G_CALLBACK (thunar_location_button_file_changed), location_button);
       g_signal_connect_swapped (G_OBJECT (file), "destroy", G_CALLBACK (thunar_location_button_file_destroy), location_button);
 
-      /* update our internal state for the new file (if realized) */
-      if (gtk_widget_get_realized (GTK_WIDGET (location_button)))
-        thunar_location_button_file_changed (location_button, file);
+      /* update our internal state for the new file */
+      thunar_location_button_file_changed (location_button, file);
     }
 
   /* notify listeners */
@@ -1000,7 +935,7 @@ thunar_location_button_set_file (ThunarLocationButton *location_button,
  * thunar_location_button_clicked:
  * @location_button : a #ThunarLocationButton.
  *
- * Emits the ::clicked signal on @location_button.
+ * Emits the ::location-button-clicked signal on @location_button.
  **/
 void
 thunar_location_button_clicked (ThunarLocationButton *location_button)

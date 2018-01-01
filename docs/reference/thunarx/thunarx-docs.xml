@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" 
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
                "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
 
 <!ENTITY ThunarxFileInfo SYSTEM "xml/thunarx-file-info.xml">
+<!ENTITY ThunarxMenu SYSTEM "xml/thunarx-menu.xml">
+<!ENTITY ThunarxMenuItem SYSTEM "xml/thunarx-menu-item.xml">
 <!ENTITY ThunarxMenuProvider SYSTEM "xml/thunarx-menu-provider.xml">
 <!ENTITY ThunarxPreferencesProvider SYSTEM "xml/thunarx-preferences-provider.xml">
 <!ENTITY ThunarxPropertyPage SYSTEM "xml/thunarx-property-page.xml">
@@ -14,7 +16,7 @@
 <!ENTITY thunarx-version-information SYSTEM "xml/thunarx-version-information.xml">
 
 <!ENTITY version SYSTEM "version.xml">
-<!ENTITY date "January 2010">
+<!ENTITY date "2017">
 ]>
 
 <book id="index">
@@ -71,7 +73,7 @@
     <para>
       The Thunar Extension Framework (<systemitem class="library">thunarx</systemitem>) provides
       developers with an easy way to extend the basic functionality provided by
-      the <ulink type="http" url="http://thunar.xfce.org/">Thunar File Manager</ulink>.
+      the <ulink type="http" url="https://docs.xfce.org/xfce/thunar/start/">Thunar File Manager</ulink>.
       The <systemitem class="library">thunarx</systemitem> library includes interfaces that can
       be implemented by extensions for various purposes.
     </para>
@@ -136,7 +138,7 @@
 
     <para>
       This section explains the basic steps required to write an extension for the <ulink type="http"
-      url="http://thunar.xfce.org">Thunar File Manager</ulink> using the C language interface. It is
+      url="https://docs.xfce.org/xfce/thunar/start">Thunar File Manager</ulink> using the C language interface. It is
       just a short introduction and not meant to provide extensive details about the internal workings
       of the file manager.
     </para>
@@ -160,7 +162,7 @@
           items to the file views, the <link
           linkend="ThunarxPropertyPageProvider"><type>ThunarxPropertyPageProvider</type></link> for adding pages to the
           file properties dialog, the <link
-          linkend="ThunarxPreferencesProvider"><type>ThunarxPreferencesProvider</type></link> for adding actions to the
+          linkend="ThunarxPreferencesProvider"><type>ThunarxPreferencesProvider</type></link> for adding items to the
           preferences section of the main menu, and the <link
           linkend="ThunarxRenamerProvider"><type>ThunarxRenamerProvider</type></link> for adding renamers to the bulk
           rename dialog.
@@ -190,9 +192,9 @@
         <title>Names</title>
 
         <para>
-          Most objects created by the extensions need names, e.g. the <link linkend="GtkAction"><type>GtkAction</type></link>s
+          Most objects created by the extensions need names, e.g. the <link linkend="ThunarxMenuItem"><type>ThunarxMenuItem</type></link>s
           returned from the <link linkend="ThunarxMenuProvider"><type>ThunarxMenuProvider</type></link>s. These names must be
-          namespaced with the name of the extension. For example the main action returned from the
+          namespaced with the name of the extension. For example the main item returned from the
           <application>TexOpenTerminal</application> extension (which can be found in the <filename
           role="directory">examples/tex-open-terminal</filename> subdirectory of the Thunar distribution) should be called
           <literal>TexOpenTerminal::open-terminal</literal>. The namespace must be global among the providers exported by
@@ -450,6 +452,8 @@ thunar_extension_initialize (ThunarxProviderPlugin *plugin)
     </para>
 
     &ThunarxFileInfo;
+    &ThunarxMenu;
+    &ThunarxMenuItem;
     &ThunarxPropertyPage;
     &ThunarxProviderPlugin;
     &ThunarxRenamer;
@@ -469,7 +473,7 @@ thunar_extension_initialize (ThunarxProviderPlugin *plugin)
       library that describe the functionality provided by a certain extension. For
       example, when the file manager pops up the file context menu, it'll first lookup
       all extensions that implement the interface <interface>ThunarxMenuProvider</interface>
-      ask those extensions for the list of additional actions.
+      ask those extensions for the list of additional menu items.
     </para>
 
     <para>

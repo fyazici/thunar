@@ -2,17 +2,17 @@
 
 <!--
    Copyright (c) 2006 Benedikt Meurer <benny@xfce.org>
-  
+
    This program is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the Free
    Software Foundation; either version 2 of the License, or (at your option)
    any later version.
-  
+
    This program is distributed in the hope that it will be useful, but WITHOUT
    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
    more details.
-  
+
    You should have received a copy of the GNU General Public License along with
    this program; if not, write to the Free Software Foundation, Inc., 59 Temple
    Place, Suite 330, Boston, MA  02111-1307  USA
@@ -26,7 +26,7 @@
     File Managers.
   -->
   <interface name="org.xfce.FileManager">
-    <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="thunar_dbus_service" />
+    <annotation name="org.gtk.GDBus.C.Name" value="DBusFileManager" />
 
     <!--
       DisplayChooserDialog (uri : STRING, open : BOOLEAN, display : STRING, startup_id : STRING) : VOID
@@ -310,7 +310,7 @@
       CreateFile (parent_directory : STRING, content_type : STRING, display : STRING, startup_id : STRING) : VOID
 
       parent_directory : the parent directory in which the file will be created.
-      content_type     : content type of the file to be created (text/plain assumed 
+      content_type     : content type of the file to be created (text/plain assumed
                          when empty).
       display          : the screen on which to launch the filenames or ""
                          to use the default screen of the file manager.
@@ -350,7 +350,7 @@
     Managers that support a trash bin.
   -->
   <interface name="org.xfce.Trash">
-    <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="thunar_dbus_service" />
+    <annotation name="org.gtk.GDBus.C.Name" value="DBusTrash" />
 
     <!--
       DisplayTrash (display : STRING, startup_id : STRING) : VOID
@@ -441,7 +441,7 @@
     do not use this interface, but use org.xfce.FileManager instead.
   -->
   <interface name="org.xfce.Thunar">
-    <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="thunar_dbus_service" />
+    <annotation name="org.gtk.GDBus.C.Name" value="DBusThunar" />
 
     <!--
       BulkRename (working_directory : STRING, filenames : ARRAY OF STRING, standalone : BOOLEAN, display : STRING, startup_id : STRING) : VOID

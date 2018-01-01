@@ -37,6 +37,7 @@
 #include <thunar/thunar-icon-factory.h>
 #include <thunar/thunar-icon-renderer.h>
 #include <thunar/thunar-launcher.h>
+#include <thunar/thunar-menu-util.h>
 #include <thunar/thunar-private.h>
 #include <thunar/thunar-properties-dialog.h>
 #include <thunar/thunar-renamer-dialog.h>
@@ -190,11 +191,11 @@ static const GtkActionEntry action_entries[] =
   { "file-menu", NULL, N_ ("_File"), NULL, },
   { "sendto-menu", NULL, N_ ("_Send To"), NULL, },
   { "file-context-menu", NULL, N_ ("File Context Menu"), NULL, },
-  { "add-files", GTK_STOCK_ADD, N_ ("_Add Files..."), NULL, N_ ("Include additional files in the list of files to be renamed"), G_CALLBACK (thunar_renamer_dialog_action_add_files), },
-  { "remove-files", GTK_STOCK_REMOVE, NULL, NULL, NULL, G_CALLBACK (thunar_renamer_dialog_action_remove_files), },
-  { "clear", GTK_STOCK_CLEAR, N_ ("Clear"), NULL, N_ ("Clear the file list below"), G_CALLBACK (thunar_renamer_dialog_action_clear), },
-  { "about", GTK_STOCK_ABOUT, N_ ("_About"), NULL, N_ ("Display information about Thunar Bulk Rename"), G_CALLBACK (thunar_renamer_dialog_action_about), },
-  { "properties", GTK_STOCK_PROPERTIES, N_ ("_Properties..."), "<alt>Return", N_ ("View the properties of the selected file"), G_CALLBACK (thunar_renamer_dialog_action_properties), },
+  { "add-files", "list-add", N_ ("_Add Files..."), NULL, N_ ("Include additional files in the list of files to be renamed"), G_CALLBACK (thunar_renamer_dialog_action_add_files), },
+  { "remove-files", "list-remove", NULL, NULL, NULL, G_CALLBACK (thunar_renamer_dialog_action_remove_files), },
+  { "clear", "edit-clear", N_ ("Clear"), NULL, N_ ("Clear the file list below"), G_CALLBACK (thunar_renamer_dialog_action_clear), },
+  { "about", "help-about", N_ ("_About"), NULL, N_ ("Display information about Thunar Bulk Rename"), G_CALLBACK (thunar_renamer_dialog_action_about), },
+  { "properties", "document-properties", N_ ("_Properties..."), "<alt>Return", N_ ("View the properties of the selected file"), G_CALLBACK (thunar_renamer_dialog_action_properties), },
 };
 
 /* Target types for dropping to the tree view */
@@ -352,8 +353,8 @@ thunar_renamer_dialog_init (ThunarRenamerDialog *renamer_dialog)
   gtk_window_set_title (GTK_WINDOW (renamer_dialog), _("Rename Multiple Files"));
 
   /* add the Cancel/Close buttons */
-  renamer_dialog->cancel_button = gtk_dialog_add_button (GTK_DIALOG (renamer_dialog), GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
-  renamer_dialog->close_button = gtk_dialog_add_button (GTK_DIALOG (renamer_dialog), GTK_STOCK_CLOSE, GTK_RESPONSE_DELETE_EVENT);
+  renamer_dialog->cancel_button = gtk_dialog_add_button (GTK_DIALOG (renamer_dialog), _("_Cancel"), GTK_RESPONSE_CANCEL);
+  renamer_dialog->close_button = gtk_dialog_add_button (GTK_DIALOG (renamer_dialog), _("_Close"), GTK_RESPONSE_DELETE_EVENT);
   gtk_widget_hide (renamer_dialog->close_button);
 
   /* add the "Rename Files" button */
@@ -385,12 +386,12 @@ thunar_renamer_dialog_init (ThunarRenamerDialog *renamer_dialog)
   /* add the toolbar to the dialog */
   toolbar = gtk_ui_manager_get_widget (renamer_dialog->ui_manager, "/toolbar");
   exo_binding_new (G_OBJECT (renamer_dialog), "standalone", G_OBJECT (toolbar), "visible");
-  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (renamer_dialog)->vbox), toolbar, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (renamer_dialog))), toolbar, FALSE, FALSE, 0);
 
   /* create the main vbox */
-  mbox = gtk_vbox_new (FALSE, 12);
+  mbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 12);
   gtk_container_set_border_width (GTK_CONTAINER (mbox), 6);
-  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (renamer_dialog)->vbox), mbox, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (renamer_dialog))), mbox, TRUE, TRUE, 0);
   gtk_widget_show (mbox);
 
   /* create the scrolled window for the tree view */
@@ -450,12 +451,12 @@ thunar_renamer_dialog_init (ThunarRenamerDialog *renamer_dialog)
   gtk_tree_view_append_column (GTK_TREE_VIEW (renamer_dialog->tree_view), column);
 
   /* create the vbox for the renamer parameters */
-  vbox = gtk_vbox_new (FALSE, 6);
+  vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
   gtk_box_pack_start (GTK_BOX (mbox), vbox, FALSE, FALSE, 0);
   gtk_widget_show (vbox);
 
   /* create the hbox for the renamer selection */
-  rbox = gtk_hbox_new (FALSE, 3);
+  rbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 3);
   gtk_box_pack_start (GTK_BOX (vbox), rbox, FALSE, FALSE, 0);
   gtk_widget_show (rbox);
 
@@ -503,7 +504,7 @@ thunar_renamer_dialog_init (ThunarRenamerDialog *renamer_dialog)
       gtk_box_pack_start (GTK_BOX (rbox), button, FALSE, FALSE, 0);
       gtk_widget_show (button);
 
-      image = gtk_image_new_from_stock (GTK_STOCK_HELP, GTK_ICON_SIZE_BUTTON);
+      image = gtk_image_new_from_icon_name ("help-browser", GTK_ICON_SIZE_BUTTON);
       gtk_container_add (GTK_CONTAINER (button), image);
       gtk_widget_show (image);
 
@@ -596,12 +597,12 @@ thunar_renamer_dialog_init (ThunarRenamerDialog *renamer_dialog)
       gtk_widget_set_sensitive (swin, FALSE);
 
       /* display an error to the user */
-      hbox = gtk_hbox_new (FALSE, 12);
+      hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
       gtk_container_set_border_width (GTK_CONTAINER (hbox), 12);
       gtk_container_add (GTK_CONTAINER (frame), hbox);
       gtk_widget_show (hbox);
 
-      image = gtk_image_new_from_stock (GTK_STOCK_DIALOG_ERROR, GTK_ICON_SIZE_DIALOG);
+      image = gtk_image_new_from_icon_name ("dialog-error", GTK_ICON_SIZE_DIALOG);
       gtk_box_pack_start (GTK_BOX (hbox), image, FALSE, FALSE, 0);
       gtk_widget_show (image);
 
@@ -611,7 +612,7 @@ thunar_renamer_dialog_init (ThunarRenamerDialog *renamer_dialog)
       label = gtk_label_new (_("No renamer modules were found on your system. Please check your\n"
                                "installation or contact your system administrator. If you install Thunar\n"
                                "from source, be sure to enable the \"Simple Builtin Renamers\" plugin."));
-      gtk_misc_set_alignment (GTK_MISC (label), 0.0f, 0.5f);
+      gtk_label_set_xalign (GTK_LABEL (label), 0.0f);
       gtk_label_set_selectable (GTK_LABEL (label), TRUE);
       gtk_box_pack_start (GTK_BOX (hbox), label, TRUE, TRUE, 0);
       gtk_widget_show (label);
@@ -847,8 +848,7 @@ thunar_renamer_dialog_context_menu (ThunarRenamerDialog *renamer_dialog,
   GtkActionGroup *renamer_actions = NULL;
   ThunarxRenamer *renamer;
   GtkWidget      *menu;
-  GList          *actions = NULL;
-  GList          *lp;
+  GList          *items = NULL;
   gint            renamer_merge_id = 0;
 
   _thunar_return_if_fail (THUNAR_IS_RENAMER_DIALOG (renamer_dialog));
@@ -860,40 +860,27 @@ thunar_renamer_dialog_context_menu (ThunarRenamerDialog *renamer_dialog,
   renamer = thunar_renamer_model_get_renamer (renamer_dialog->model);
   if (G_LIKELY (renamer != NULL))
     {
-      /* determine the actions provided by the active renamer */
-      actions = thunarx_renamer_get_actions (renamer, GTK_WINDOW (renamer_dialog), renamer_dialog->selected_files);
+      /* determine the menu items provided by the active renamer */
+      items = thunarx_renamer_get_menu_items (renamer, GTK_WINDOW (renamer_dialog), renamer_dialog->selected_files);
     }
 
-  /* check if we have any renamer actions */
-  if (G_UNLIKELY (actions != NULL))
+  /* check if we have any renamer menu items */
+  if (G_UNLIKELY (items != NULL))
     {
-      /* allocate a new action group and the merge id for the custom actions */
+      /* allocate a new action group and the merge id for the custom items */
       renamer_actions = gtk_action_group_new ("thunar-renamer-dialog-renamer-actions");
       renamer_merge_id = gtk_ui_manager_new_merge_id (renamer_dialog->ui_manager);
       gtk_ui_manager_insert_action_group (renamer_dialog->ui_manager, renamer_actions, -1);
 
-      /* add the actions to the UI manager */
-      for (lp = actions; lp != NULL; lp = lp->next)
-        {
-          /* add the action to the action group */
-          gtk_action_group_add_action (renamer_actions, GTK_ACTION (lp->data));
-
-          /* add the action to the UI manager */
-          gtk_ui_manager_add_ui (renamer_dialog->ui_manager, renamer_merge_id,
-                                 "/file-context-menu/placeholder-renamer-actions",
-                                 gtk_action_get_name (GTK_ACTION (lp->data)),
-                                 gtk_action_get_name (GTK_ACTION (lp->data)),
-                                 GTK_UI_MANAGER_MENUITEM, FALSE);
-
-          /* release the reference on the action */
-          g_object_unref (G_OBJECT (lp->data));
-        }
+      /* add the items to the UI manager */
+      thunar_menu_util_add_items_to_ui_manager (renamer_dialog->ui_manager, renamer_actions, renamer_merge_id,
+                                                "/file-context-menu/placeholder-renamer-actions", items);
 
       /* be sure to update the UI manager to avoid flickering */
       gtk_ui_manager_ensure_update (renamer_dialog->ui_manager);
 
       /* cleanup */
-      g_list_free (actions);
+      g_list_free (items);
     }
 
   /* run the menu on the dialog's screen */
@@ -1057,8 +1044,8 @@ thunar_renamer_dialog_action_add_files (GtkAction           *action,
   chooser = gtk_file_chooser_dialog_new (_("Select files to rename"),
                                          GTK_WINDOW (renamer_dialog),
                                          GTK_FILE_CHOOSER_ACTION_OPEN,
-                                         GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                                         GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+                                         _("_Cancel"), GTK_RESPONSE_CANCEL,
+                                         _("_Open"), GTK_RESPONSE_ACCEPT,
                                          NULL);
   gtk_file_chooser_set_local_only (GTK_FILE_CHOOSER (chooser), TRUE);
   gtk_file_chooser_set_select_multiple (GTK_FILE_CHOOSER (chooser), TRUE);
@@ -1346,7 +1333,7 @@ thunar_renamer_dialog_drag_data_received (GtkWidget           *tree_view,
   _thunar_return_if_fail (GTK_IS_TREE_VIEW (tree_view));
 
   /* we only accept text/uri-list drops with format 8 and atleast one byte of data */
-  if (info == TARGET_TEXT_URI_LIST && selection_data->format == 8 && selection_data->length > 0)
+  if (info == TARGET_TEXT_URI_LIST && gtk_selection_data_get_format (selection_data) == 8 && gtk_selection_data_get_length (selection_data) > 0)
     {
       /* determine the renamer model */
       model = gtk_tree_view_get_model (GTK_TREE_VIEW (tree_view));
@@ -1368,7 +1355,7 @@ thunar_renamer_dialog_drag_data_received (GtkWidget           *tree_view,
         }
 
       /* determine the file list from the selection_data */
-      file_list = thunar_g_file_list_new_from_string ((const gchar *) selection_data->data);
+      file_list = thunar_g_file_list_new_from_string ((const gchar *) gtk_selection_data_get_data (selection_data));
 
       /* add all paths to the model */
       for (lp = file_list; lp != NULL; lp = lp->next)
@@ -1423,7 +1410,7 @@ thunar_renamer_dialog_drag_leave (GtkWidget           *tree_view,
       /* we use the tree view parent (the scrolled window),
        * as the drag_highlight doesn't work for tree views.
        */
-      gtk_drag_unhighlight (tree_view->parent);
+      gtk_drag_unhighlight (gtk_widget_get_parent (tree_view));
       renamer_dialog->drag_highlighted = FALSE;
     }
 }
@@ -1467,14 +1454,14 @@ thunar_renamer_dialog_drag_motion (GtkWidget           *tree_view,
           /* we use the tree view parent (the scrolled window),
            * as the drag_highlight doesn't work for tree views.
            */
-          gtk_drag_unhighlight (tree_view->parent);
+          gtk_drag_unhighlight (gtk_widget_get_parent (tree_view));
           renamer_dialog->drag_highlighted = FALSE;
         }
 
       /* we cannot handle the drop */
       return FALSE;
     }
-      
+
   /* compute the drop position */
   if (gtk_tree_view_get_dest_row_at_pos (GTK_TREE_VIEW (tree_view), x, y, &path, &position))
     {
@@ -1507,7 +1494,7 @@ thunar_renamer_dialog_drag_motion (GtkWidget           *tree_view,
   else if (!renamer_dialog->drag_highlighted)
     {
       /* highlight the parent */
-      gtk_drag_highlight (tree_view->parent);
+      gtk_drag_highlight (gtk_widget_get_parent (tree_view));
       renamer_dialog->drag_highlighted = TRUE;
     }
 
@@ -1533,10 +1520,10 @@ thunar_renamer_dialog_drag_drop (GtkWidget           *tree_view,
   GtkTreeViewDropPosition  drop_pos;
   gint                     position = -1;
   GList                   *rows;
-  
+
   _thunar_return_val_if_fail (THUNAR_IS_RENAMER_DIALOG (renamer_dialog), FALSE);
   _thunar_return_val_if_fail (GTK_IS_TREE_VIEW (tree_view), FALSE);
-  
+
   /* determine the drop target */
   target = gtk_drag_dest_find_target (tree_view, context, NULL);
   if (G_LIKELY (target == gdk_atom_intern_static_string ("text/uri-list")))
@@ -1584,7 +1571,7 @@ thunar_renamer_dialog_drag_drop (GtkWidget           *tree_view,
 
   return TRUE;
 }
-                                  
+
 
 
 static void

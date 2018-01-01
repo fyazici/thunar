@@ -177,7 +177,7 @@ thunar_sbr_number_renamer_init (ThunarSbrNumberRenamer *number_renamer)
   GtkWidget      *hbox;
   guint           n;
 
-  hbox = gtk_hbox_new (FALSE, 12);
+  hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
   gtk_box_pack_start (GTK_BOX (number_renamer), hbox, FALSE, FALSE, 0);
   gtk_widget_show (hbox);
 
@@ -185,10 +185,10 @@ thunar_sbr_number_renamer_init (ThunarSbrNumberRenamer *number_renamer)
   gtk_box_pack_start (GTK_BOX (hbox), label, FALSE, FALSE, 0);
   gtk_widget_show (label);
 
-  combo = gtk_combo_box_new_text ();
+  combo = gtk_combo_box_text_new ();
   klass = g_type_class_ref (THUNAR_SBR_TYPE_NUMBER_MODE);
   for (n = 0; n < klass->n_values; ++n)
-    gtk_combo_box_append_text (GTK_COMBO_BOX (combo), _(klass->values[n].value_nick));
+    gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (combo), _(klass->values[n].value_nick));
   exo_mutual_binding_new (G_OBJECT (number_renamer), "mode", G_OBJECT (combo), "active");
   gtk_box_pack_start (GTK_BOX (hbox), combo, FALSE, FALSE, 0);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label), combo);
@@ -223,7 +223,7 @@ thunar_sbr_number_renamer_init (ThunarSbrNumberRenamer *number_renamer)
   atk_relation_set_add (relations, relation);
   g_object_unref (G_OBJECT (relation));
 
-  hbox = gtk_hbox_new (FALSE, 12);
+  hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
   gtk_box_pack_end (GTK_BOX (number_renamer), hbox, FALSE, FALSE, 0);
   gtk_widget_show (hbox);
 
@@ -231,10 +231,10 @@ thunar_sbr_number_renamer_init (ThunarSbrNumberRenamer *number_renamer)
   gtk_box_pack_start (GTK_BOX (hbox), label, FALSE, FALSE, 0);
   gtk_widget_show (label);
 
-  combo = gtk_combo_box_new_text ();
+  combo = gtk_combo_box_text_new ();
   klass = g_type_class_ref (THUNAR_SBR_TYPE_TEXT_MODE);
   for (n = 0; n < klass->n_values; ++n)
-    gtk_combo_box_append_text (GTK_COMBO_BOX (combo), _(klass->values[n].value_nick));
+    gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (combo), _(klass->values[n].value_nick));
   exo_mutual_binding_new (G_OBJECT (number_renamer), "text-mode", G_OBJECT (combo), "active");
   gtk_box_pack_start (GTK_BOX (hbox), combo, FALSE, FALSE, 0);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label), combo);
@@ -256,7 +256,7 @@ thunar_sbr_number_renamer_init (ThunarSbrNumberRenamer *number_renamer)
   gtk_widget_show (entry);
 
   label = gtk_label_new_with_mnemonic (_("_Text:"));
-  gtk_misc_set_alignment (GTK_MISC (label), 1.0f, 0.5f);
+  gtk_label_set_xalign (GTK_LABEL (label), 1.0f);
   gtk_box_pack_end (GTK_BOX (hbox), label, FALSE, FALSE, 0);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label), entry);
   gtk_widget_show (label);
@@ -467,10 +467,8 @@ thunar_sbr_number_renamer_process (ThunarxRenamer  *renamer,
 static void
 thunar_sbr_number_renamer_update (ThunarSbrNumberRenamer *number_renamer)
 {
-  gboolean invalid = TRUE;
-  GdkColor back;
-  GdkColor text;
-  gchar   *endp;
+  gboolean  invalid = TRUE;
+  gchar    *endp;
 
   /* check whether "start" is valid for the "mode" */
   if (number_renamer->mode < THUNAR_SBR_NUMBER_MODE_ABC)
@@ -490,26 +488,11 @@ thunar_sbr_number_renamer_update (ThunarSbrNumberRenamer *number_renamer)
   /* check if the start entry is realized */
   if (gtk_widget_get_realized (number_renamer->start_entry))
     {
-      /* check if the "start" value is valid */
+      /* highlight invalid input by using theme specific colors */
       if (G_UNLIKELY (invalid))
-        {
-          /* if GTK+ wouldn't be that stupid with style properties and 
-           * type plugins, this would be themable, but unfortunately
-           * GTK+ is totally broken, and so it's hardcoded.
-           */
-          gdk_color_parse ("#ff6666", &back);
-          gdk_color_parse ("White", &text);
-
-          /* setup a red background/text color to indicate the error */
-          gtk_widget_modify_base (number_renamer->start_entry, GTK_STATE_NORMAL, &back);
-          gtk_widget_modify_text (number_renamer->start_entry, GTK_STATE_NORMAL, &text);
-        }
+          gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (number_renamer->start_entry)), "error");
       else
-        {
-          /* reset background/text color */
-          gtk_widget_modify_base (number_renamer->start_entry, GTK_STATE_NORMAL, NULL);
-          gtk_widget_modify_text (number_renamer->start_entry, GTK_STATE_NORMAL, NULL);
-        }
+          gtk_style_context_remove_class (gtk_widget_get_style_context (GTK_WIDGET (number_renamer->start_entry)), "error");
     }
 
   /* notify everybody that we have a new state */

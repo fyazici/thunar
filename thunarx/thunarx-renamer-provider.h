@@ -27,7 +27,7 @@
 
 #include <thunarx/thunarx-renamer.h>
 
-G_BEGIN_DECLS;
+G_BEGIN_DECLS
 
 typedef struct _ThunarxRenamerProviderIface ThunarxRenamerProviderIface;
 typedef struct _ThunarxRenamerProvider      ThunarxRenamerProvider;
@@ -36,6 +36,14 @@ typedef struct _ThunarxRenamerProvider      ThunarxRenamerProvider;
 #define THUNARX_RENAMER_PROVIDER(obj)           (G_TYPE_CHECK_INSTANCE_CAST ((obj), THUNARX_TYPE_RENAMER_PROVIDER, ThunarxRenamerProvider))
 #define THUNARX_IS_RENAMER_PROVIDER(obj)        (G_TYPE_CHECK_INSTANCE_TYPE ((obj), THUNARX_TYPE_RENAMER_PROVIDER))
 #define THUNARX_RENAMER_PROVIDER_GET_IFACE(obj) (G_TYPE_INSTANCE_GET_INTERFACE ((obj), THUNARX_TYPE_RENAMER_PROVIDER, ThunarxRenamerProviderIface))
+
+/**
+ * ThunarxRenamerProviderIface:
+ * @get_renamers: see thunarx_renamer_provider_get_renamers().
+ *
+ * Interface with virtual methods implemented by extensions that provide
+ * additional bulk renamers for the integrated bulk renamer in Thunar.
+ */
 
 struct _ThunarxRenamerProviderIface
 {
@@ -57,6 +65,6 @@ GType  thunarx_renamer_provider_get_type     (void) G_GNUC_CONST;
 
 GList *thunarx_renamer_provider_get_renamers (ThunarxRenamerProvider *provider) G_GNUC_MALLOC;
 
-G_END_DECLS;
+G_END_DECLS
 
 #endif /* !__THUNARX_RENAMER_PROVIDER_H__ */

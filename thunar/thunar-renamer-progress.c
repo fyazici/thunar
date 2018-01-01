@@ -36,7 +36,7 @@ enum
 
 
 static void     thunar_renamer_progress_finalize          (GObject                    *object);
-static void     thunar_renamer_progress_destroy           (GtkObject                  *object);
+static void     thunar_renamer_progress_destroy           (GtkWidget                  *object);
 static gboolean thunar_renamer_progress_next_idle         (gpointer                    user_data);
 static void     thunar_renamer_progress_next_idle_destroy (gpointer                    user_data);
 
@@ -65,21 +65,21 @@ struct _ThunarRenamerProgress
 
 
 
-G_DEFINE_TYPE (ThunarRenamerProgress, thunar_renamer_progress, GTK_TYPE_ALIGNMENT)
+G_DEFINE_TYPE (ThunarRenamerProgress, thunar_renamer_progress, GTK_TYPE_BOX)
 
 
 
 static void
 thunar_renamer_progress_class_init (ThunarRenamerProgressClass *klass)
 {
-  GtkObjectClass *gtkobject_class;
+  GtkWidgetClass *gtkwidget_class;
   GObjectClass   *gobject_class;
 
   gobject_class = G_OBJECT_CLASS (klass);
   gobject_class->finalize = thunar_renamer_progress_finalize;
 
-  gtkobject_class = GTK_OBJECT_CLASS (klass);
-  gtkobject_class->destroy = thunar_renamer_progress_destroy;
+  gtkwidget_class = GTK_WIDGET_CLASS (klass);
+  gtkwidget_class->destroy = thunar_renamer_progress_destroy;
 }
 
 
@@ -87,9 +87,10 @@ thunar_renamer_progress_class_init (ThunarRenamerProgressClass *klass)
 static void
 thunar_renamer_progress_init (ThunarRenamerProgress *renamer_progress)
 {
-  gtk_alignment_set (GTK_ALIGNMENT (renamer_progress), 0.5f, 0.5f, 1.0f, 0.0f);
+  gtk_orientable_set_orientation (GTK_ORIENTABLE (renamer_progress), GTK_ORIENTATION_HORIZONTAL);
 
   renamer_progress->bar = gtk_progress_bar_new ();
+  gtk_widget_set_hexpand (renamer_progress->bar, TRUE);
   gtk_container_add (GTK_CONTAINER (renamer_progress), renamer_progress->bar);
   gtk_widget_show (renamer_progress->bar);
 }
@@ -115,14 +116,14 @@ thunar_renamer_progress_finalize (GObject *object)
 
 
 static void
-thunar_renamer_progress_destroy (GtkObject *object)
+thunar_renamer_progress_destroy (GtkWidget *object)
 {
   ThunarRenamerProgress *renamer_progress = THUNAR_RENAMER_PROGRESS (object);
 
   /* exit the internal main loop on destroy */
   thunar_renamer_progress_cancel (renamer_progress);
 
-  (*GTK_OBJECT_CLASS (thunar_renamer_progress_parent_class)->destroy) (object);
+  (*GTK_WIDGET_CLASS (thunar_renamer_progress_parent_class)->destroy) (object);
 }
 
 
@@ -193,7 +194,7 @@ thunar_renamer_progress_next_idle (gpointer user_data)
                                                           "remaining files, or revert the previously renamed files to their "
                                                           "previous names, or cancel the operation without reverting previous "
                                                           "changes."));
-              gtk_dialog_add_button (GTK_DIALOG (message), GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
+              gtk_dialog_add_button (GTK_DIALOG (message), _("_Cancel"), GTK_RESPONSE_CANCEL);
               gtk_dialog_add_button (GTK_DIALOG (message), _("_Revert Changes"), GTK_RESPONSE_REJECT);
               gtk_dialog_add_button (GTK_DIALOG (message), _("_Skip This File"), GTK_RESPONSE_ACCEPT);
               gtk_dialog_set_default_response (GTK_DIALOG (message), GTK_RESPONSE_ACCEPT);
@@ -203,14 +204,14 @@ thunar_renamer_progress_next_idle (gpointer user_data)
               gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (message),
                                                         _("Do you want to skip this file and continue to rename the "
                                                           "remaining files?"));
-              gtk_dialog_add_button (GTK_DIALOG (message), GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
+              gtk_dialog_add_button (GTK_DIALOG (message), _("_Cancel"), GTK_RESPONSE_CANCEL);
               gtk_dialog_add_button (GTK_DIALOG (message), _("_Skip This File"), GTK_RESPONSE_ACCEPT);
               gtk_dialog_set_default_response (GTK_DIALOG (message), GTK_RESPONSE_ACCEPT);
             }
           else
             {
               gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (message), "%s.", error->message);
-              gtk_dialog_add_button (GTK_DIALOG (message), GTK_STOCK_CLOSE, GTK_RESPONSE_CANCEL);
+              gtk_dialog_add_button (GTK_DIALOG (message), _("_Close"), GTK_RESPONSE_CANCEL);
             }
 
           /* run the dialog */
