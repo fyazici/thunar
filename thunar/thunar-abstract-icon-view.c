@@ -454,6 +454,12 @@ thunar_abstract_icon_view_action_sort (GtkAction          *action,
 
   /* apply the new settings */
   gtk_tree_sortable_set_sort_column_id (GTK_TREE_SORTABLE (standard_view->model), column, order);
+  
+  /* DO NOT remember the new values as default */
+  g_object_set (G_OBJECT (standard_view->preferences),
+                "last-sort-column", column,
+                "last-sort-order", order,
+                 NULL);
 }
 
 

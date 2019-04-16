@@ -3848,11 +3848,11 @@ thunar_standard_view_sort_column_changed (GtkTreeSortable    *tree_sortable,
   /* determine the new sort column and sort order */
   if (gtk_tree_sortable_get_sort_column_id (tree_sortable, &sort_column, &sort_order))
     {
-      /* remember the new values as default */
-      g_object_set (G_OBJECT (standard_view->preferences),
-                    "last-sort-column", sort_column,
-                    "last-sort-order", sort_order,
-                    NULL);
+      /* DO NOT remember the new values as default */
+//       g_object_set (G_OBJECT (standard_view->preferences),
+//                     "last-sort-column", sort_column,
+//                     "last-sort-order", sort_order,
+//                     NULL);
     }
 }
 

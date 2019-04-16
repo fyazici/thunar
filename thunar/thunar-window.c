@@ -249,6 +249,8 @@ static gboolean thunar_window_save_geometry_timer         (gpointer             
 static void     thunar_window_save_geometry_timer_destroy (gpointer                user_data);
 static void     thunar_window_set_zoom_level              (ThunarWindow           *window,
                                                            ThunarZoomLevel         zoom_level);
+static void     thunar_hack_update_view_settings          (ThunarWindow *window);
+
 
 
 
@@ -2823,6 +2825,9 @@ thunar_window_action_view_changed (GtkRadioAction *action,
     g_object_unref (G_OBJECT (file));
   if (G_UNLIKELY (current_directory != NULL))
     g_object_unref (G_OBJECT (current_directory));
+  
+  /* Call to our hack */
+  thunar_hack_update_view_settings(window);
 }
 
 
@@ -3268,6 +3273,69 @@ thunar_window_action_show_hidden (GtkToggleAction *action,
 }
 
 
+/* check if the current directory contains a configuration file
+ * if yes, read the configuration valeus (sort criterion, sort order) from the file
+ * if it succeeds, update the current view model *WITHOUT* notifying preferences property setter
+ * this is to prevent per-directory settings to be written to xfconf
+ * if there is no configuration file, just load the relevant settings from xfconf
+ * and update the current view model again without notifying other stuff, since the
+ * value is already being stored in xfconf
+ */
+static void thunar_hack_update_view_settings(ThunarWindow *window)
+{
+    /* construct the configuration filename from current directory */
+    GFile *base_dir = thunar_file_get_file(window->current_directory);
+    GFile *test_file = g_file_get_child(base_dir, ".localdirviewconf000");
+
+    ThunarStandardView *standard_view = THUNAR_STANDARD_VIEW(window->view);
+    gint sort_column, sort_order;
+    GError *err=NULL;
+    GFileInputStream *infstream=NULL;
+    GDataInputStream *indstream=NULL;
+    gchar *line=NULL;
+
+    g_object_get(G_OBJECT(window->preferences),
+                 "last-sort-column", &sort_column,
+                 "last-sort-order", &sort_order,
+                 NULL);
+
+    /* cleanup loop */
+    do
+    {
+        /* check if configuration file exists */
+        if (g_file_query_exists(test_file, NULL)) {
+            /* yes, load the configuration */
+            infstream = g_file_read(test_file, NULL, &err);
+            if (err != NULL) {
+                fprintf(stderr, "Failed: %s\n", err->message);
+                break;
+            }
+
+            indstream = g_data_input_stream_new(G_INPUT_STREAM(infstream));
+            if (indstream != NULL) {
+                gchar *end=NULL;
+                /* read the only line from configuration file */
+                /* TODO: implement a better configuration method like json */
+                line = g_data_input_stream_read_line(indstream, 0, NULL, &err);
+
+                sort_column = g_ascii_strtoll(line, &end, 10);
+                if (end == NULL) break;
+
+                sort_order = g_ascii_strtoll(end, NULL, 10);
+            }
+        }
+    } while (0);
+
+    /* apply updated settings to current view */
+    gtk_tree_sortable_set_sort_column_id (GTK_TREE_SORTABLE (standard_view->model), sort_column, sort_order);
+
+    /* cleanup */
+    if (line) g_free(line);
+    if (err) g_error_free(err);
+    if (infstream) g_object_unref(infstream);
+    if (indstream) g_object_unref(indstream);
+    if (test_file) g_object_unref(test_file);
+}
 
 static void
 thunar_window_current_directory_changed (ThunarFile   *current_directory,
@@ -3280,11 +3348,14 @@ thunar_window_current_directory_changed (ThunarFile   *current_directory,
   gboolean      show_full_path;
   gchar        *parse_name = NULL;
   const gchar  *name;
-
+  
   _thunar_return_if_fail (THUNAR_IS_WINDOW (window));
   _thunar_return_if_fail (THUNAR_IS_FILE (current_directory));
   _thunar_return_if_fail (window->current_directory == current_directory);
-
+  
+  /* Call to our hack */
+  thunar_hack_update_view_settings(window);
+  
   /* update the "Empty Trash" action */
   action = gtk_action_group_get_action (window->action_group, "empty-trash");
   gtk_action_set_sensitive (action, (thunar_file_get_item_count (current_directory) > 0));
@@ -3937,3 +4008,4 @@ thunar_window_set_directories (ThunarWindow   *window,
   /* we succeeded if new pages have been opened */
   return gtk_notebook_get_n_pages (GTK_NOTEBOOK (window->notebook)) > 0;
 }
+

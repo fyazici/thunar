@@ -236,6 +236,7 @@ main (int argc, char **argv)
       filenames[1] = NULL;
     }
 
+#if 0
 #ifdef HAVE_DBUS
   /* check if we can reuse an existing instance */
   if ((!opt_bulk_rename && filenames != NULL && thunar_dbus_client_launch_files (working_directory, filenames, NULL, startup_id, NULL))
@@ -246,6 +247,7 @@ main (int argc, char **argv)
       g_strfreev (filenames);
       return EXIT_SUCCESS;
     }
+#endif
 #endif
 
   /* initialize the thunar stock items/icons */
